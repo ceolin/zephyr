@@ -8,7 +8,12 @@
 #include <zephyr.h>
 
 #define STACKSIZE       2048
+/* Necessary to not exceed SRAM available */
+#if defined(CONFIG_BOARD_BBC_MICROBIT)
+#define THREAD_COUNT	32
+#else
 #define THREAD_COUNT	64
+#endif
 #define VERBOSE		0
 
 void *last_sp = (void *)0xFFFFFFFF;
@@ -34,7 +39,7 @@ void alternate_thread(void)
 
 
 K_THREAD_STACK_DEFINE(alt_thread_stack_area, STACKSIZE);
-static struct k_thread alt_thread_data;
+static struct k_thread alt_thread_data[THREAD_COUNT];
 
 void test_stack_pt_randomization(void)
 {
@@ -48,7 +53,7 @@ void test_stack_pt_randomization(void)
 
 	/* Start thread */
 	for (i = 0; i < THREAD_COUNT; i++) {
-		k_thread_create(&alt_thread_data, alt_thread_stack_area,
+		k_thread_create(&alt_thread_data[i], alt_thread_stack_area,
 				STACKSIZE, (k_thread_entry_t)alternate_thread,
 				NULL, NULL, NULL, K_HIGHEST_THREAD_PRIO, 0,
 				K_NO_WAIT);
