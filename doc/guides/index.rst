@@ -29,3 +29,4 @@ User and Developer Guides
    tracing/index
    west/index
    optimizations/index
+   build/index
