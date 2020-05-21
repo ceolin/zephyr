@@ -329,6 +329,13 @@ static inline void arch_isr_direct_footer(int swap)
  */
 
 typedef struct nanoEsf {
+#ifdef CONFIG_GDBSTUB
+	unsigned int ss;
+	unsigned int gs;
+	unsigned int fs;
+	unsigned int es;
+	unsigned int ds;
+#endif
 	unsigned int esp;
 	unsigned int ebp;
 	unsigned int ebx;
