@@ -18,6 +18,12 @@ __weak bool z_x86_do_kernel_nmi(const z_arch_esf_t *esf)
 	return false;
 }
 
+/* TODO: Should it be in a header ? */
+
+#if CONFIG_GDBSTUB
+extern void z_gdb_interrupt(z_arch_esf_t *esf);
+#endif	/* CONFIG_GDBSTUB */
+
 void z_x86_exception(z_arch_esf_t *esf)
 {
 	switch (esf->vector) {
@@ -33,6 +39,13 @@ void z_x86_exception(z_arch_esf_t *esf)
 			CODE_UNREACHABLE;
 		}
 		break;
+#if CONFIG_GDBSTUB
+	case IV_DEBUG:
+		__fallthrough;
+	case IV_BREAKPOINT:
+		z_gdb_interrupt(esf);
+		break;
+#endif	/* CONFIG_GDBSTUB */
 	default:
 		z_x86_unhandled_cpu_exception(esf->vector, esf);
 		CODE_UNREACHABLE;

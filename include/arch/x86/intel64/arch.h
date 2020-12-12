@@ -8,6 +8,9 @@
 
 #include <arch/x86/intel64/thread.h>
 #include <arch/x86/thread_stack.h>
+#ifdef CONFIG_GDBSTUB
+#include <arch/x86/intel64/gdbstub.h>
+#endif
 
 #if CONFIG_ISR_STACK_SIZE != (CONFIG_ISR_SUBSTACK_SIZE * CONFIG_ISR_DEPTH)
 #error "Check ISR stack configuration (CONFIG_ISR_*)"
@@ -54,14 +57,14 @@ static ALWAYS_INLINE unsigned int arch_irq_lock(void)
  */
 
 struct x86_esf {
-#ifdef CONFIG_EXCEPTION_DEBUG
+#if defined(CONFIG_EXCEPTION_DEBUG) || defined(CONFIG_GDBSTUB)
 	/* callee-saved */
 	unsigned long rbx;
 	unsigned long r12;
 	unsigned long r13;
 	unsigned long r14;
 	unsigned long r15;
-#endif /* CONFIG_EXCEPTION_DEBUG */
+#endif /* CONFIG_EXCEPTION_DEBUG || CONFIG_GDBSTUB */
 	unsigned long rbp;
 
 	/* Caller-saved regs */

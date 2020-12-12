@@ -520,14 +520,14 @@ except: /*
 	pushq %rcx
 	pushq %rax
 	pushq %rbp
-#ifdef CONFIG_EXCEPTION_DEBUG
+#if defined(CONFIG_EXCEPTION_DEBUG) || defined(CONFIG_GDBSTUB)
 	/* Callee saved regs */
 	pushq %r15
 	pushq %r14
 	pushq %r13
 	pushq %r12
 	pushq %rbx
-#endif /* CONFIG_EXCEPTION_DEBUG */
+#endif /* CONFIG_EXCEPTION_DEBUG || CONFIG_GDBSTUB */
 	movq %rsp, %rdi
 
 	call z_x86_exception
@@ -535,13 +535,13 @@ except: /*
 	/* If we returned, the exception was handled successfully and the
 	 * thread may resume (the pushed RIP may have been modified)
 	 */
-#ifdef CONFIG_EXCEPTION_DEBUG
+#if defined(CONFIG_EXCEPTION_DEBUG) || defined(CONFIG_GDBSTUB)
 	popq %rbx
 	popq %r12
 	popq %r13
 	popq %r14
 	popq %r15
-#endif /* CONFIG_EXCEPTION_DEBUG */
+#endif /* CONFIG_EXCEPTION_DEBUG || CONFIG_GDBSTUB */
 	popq %rbp
 	popq %rax
 	popq %rcx

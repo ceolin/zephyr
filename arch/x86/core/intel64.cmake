@@ -19,3 +19,5 @@ zephyr_library_sources(
 zephyr_library_sources_ifdef(CONFIG_USERSPACE	intel64/userspace.S)
 
 zephyr_library_sources_ifdef(CONFIG_DEBUG_COREDUMP	intel64/coredump.c)
+
+zephyr_library_sources_ifdef(CONFIG_GDBSTUB	intel64/gdbstub.c)

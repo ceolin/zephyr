@@ -337,7 +337,7 @@ static inline void arch_isr_direct_footer(int swap)
  * Those registers are pushed onto the stack by _ExcEnt().
  */
 
-typedef struct nanoEsf {
+typedef struct  nanoEsf {
 #ifdef CONFIG_GDBSTUB
 	unsigned int ss;
 	unsigned int gs;
