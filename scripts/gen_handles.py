@@ -38,6 +38,7 @@ from elftools.elf.elffile import ELFFile
 from elftools.elf.sections import SymbolTableSection
 import elftools.elf.enums
 
+
 # This is needed to load edt.pickle files.
 sys.path.append(os.path.join(os.path.dirname(__file__),
                              'dts', 'python-devicetree', 'src'))
@@ -159,6 +160,45 @@ class Handles:
         self.dev_deps = None
         self.ext_deps = None
 
+def get_device_pm_list(used_nodes, device_map):
+    device_and_deps = {}
+
+    # device_map maps a device node with its address.
+    # We are using to create a dictionary where the key is the symbol address
+    # and the value is a list of symbol address representing its dependencies
+    for node in used_nodes:
+        deps = []
+        for dep in node.__depends:
+            deps.append(device_map[dep])
+        device_and_deps[node.__device.addr] = deps
+
+    # Book keeping devices that were already added
+    added = set()
+    devs = []
+
+    def dfs(dev):
+        if not dev or dev in added:
+            return []
+
+        ret = []
+        for dep in device_and_deps[dev]:
+            ret += dfs(dep)
+        added.add(dev)
+        ret.append(dev)
+        return ret
+
+    for dev in device_and_deps:
+        # The device has no dependency, just add it if is not already included.
+        if len(device_and_deps[dev]) == 0:
+            if not dev in added:
+                devs.append(dev)
+                added.add(dev)
+        else:
+            devs += dfs(dev)
+
+    return devs
+
+
 def main():
     parse_args()
 
@@ -171,6 +211,7 @@ def main():
 
     devices = []
     handles = []
+    device_map = {}
     # Leading _ are stripped from the stored constant key
     want_constants = set(["__device_start",
                           "_DEVICE_STRUCT_SIZEOF",
@@ -233,6 +274,7 @@ def main():
             debug("%s dev ordinal %d\n\t%s" % (n.path, device.dev_handle, ' ; '.join(str(_) for _ in handle.handles)))
             used_nodes.add(n)
             n.__device = device
+            device_map[n] = device.addr
         else:
             debug("orphan %d" % (device.dev_handle,))
         hv = handle.handles
@@ -274,6 +316,7 @@ def main():
                     deps.add(ddn)
         debug("final deps:\n\t%s\n" % ("\n\t".join([ _dn.path for _dn in sn.__depends])))
 
+    devices_list = get_device_pm_list(used_nodes, device_map)
     with open(args.output_source, "w") as fp:
         fp.write('#include <device.h>\n')
         fp.write('#include <toolchain.h>\n')
@@ -325,6 +368,19 @@ def main():
             ])
 
             fp.write('\n'.join(lines))
+
+        # write the ordered devices list
+        fp.write("\n")
+        fp.write("struct device * const * __attribute__((__section__(\".__device_pm_list\")))"
+                 "z_get_pm_devices(size_t *len)\n{\n")
+        fp.write("\tstatic struct device * const pm_devices[] = {\n")
+        for dev in devices_list:
+            fp.write("\t\t(struct device *)(uintptr_t){},\n".format(dev))
+        fp.write('\t};\n')
+        fp.write("\n\t*len = {};\n".format(len(devices_list)))
+        fp.write("\treturn pm_devices;\n")
+        fp.write("}\n")
+
 
 if __name__ == "__main__":
     main()

@@ -200,3 +200,10 @@
 #endif /* LINKER_ZEPHYR_FINAL */
 		__device_handles_end = .;
 	} GROUP_ROM_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
+
+	SECTION_DATA_PROLOGUE(device_pm_list,,)
+	{
+#ifdef LINKER_ZEPHYR_FINAL
+		KEEP(*(SORT(.__device_pm_list*)));
+#endif /* LINKER_ZEPHYR_FINAL */
+	} GROUP_ROM_LINK_IN(RAMABLE_REGION, ROMABLE_REGION)
