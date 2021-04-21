@@ -112,6 +112,10 @@ static int device_pm_request(const struct device *dev,
 		}
 	}
 
+	if (k_is_pre_kernel()) {
+		return 0;
+	}
+
 	k_work_submit(&dev->pm->work);
 
 	/* Return in case of Async request */
@@ -157,6 +161,25 @@ int device_pm_put_sync(const struct device *dev)
 
 void device_pm_enable(const struct device *dev)
 {
+	if (k_is_pre_kernel()) {
+		int ret;
+
+		/*
+		 * If you are running in pre-kernel we don't need to
+		 * worry about multi threading.
+		 */
+		ret = device_set_power_state(dev,
+					     DEVICE_PM_ACTIVE_STATE,
+					     device_pm_callback, NULL);
+		__ASSERT(ret == 0, "Failed to set a device power state");
+
+		dev->pm->dev = dev;
+		dev->pm->enable = true;
+		atomic_set(&dev->pm->fsm_state, DEVICE_PM_STATE_ACTIVE);
+
+		return;
+	}
+
 	k_sem_take(&dev->pm->lock, K_FOREVER);
 	dev->pm->enable = true;
 
@@ -177,6 +200,9 @@ void device_pm_enable(const struct device *dev)
 
 void device_pm_disable(const struct device *dev)
 {
+	__ASSERT(k_is_pre_kernel() == false, "Device should not be disabled "
+		 "before kernel is initialized");
+
 	k_sem_take(&dev->pm->lock, K_FOREVER);
 	dev->pm->enable = false;
 	/* Bring up the device before disabling the Idle PM */
