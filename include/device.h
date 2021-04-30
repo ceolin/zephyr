@@ -339,8 +339,6 @@ typedef void (*device_pm_cb)(const struct device *dev,
  * @brief Device PM info
  */
 struct device_pm {
-	/** Pointer to the device */
-	const struct device *dev;
 	/** Lock to synchronize the get/put operations */
 	struct k_spinlock lock;
 	/* Following are packed fields protected by #lock. */
@@ -352,8 +350,6 @@ struct device_pm {
 	atomic_t usage;
 	/** Device idle internal power state */
 	atomic_t fsm_state;
-	/** Work object for asynchronous calls */
-	struct k_work_delayable work;
 	/** Event conditional var to listen to the sync request events */
 	struct k_condvar condvar;
 
