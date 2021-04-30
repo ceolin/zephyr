@@ -104,6 +104,9 @@ static int device_pm_request(const struct device *dev,
 	}
 
 	if (k_is_pre_kernel()) {
+		ret = device_set_power_state(dev,
+					     DEVICE_PM_ACTIVE_STATE,
+					     device_pm_callback, NULL);
 		return 0;
 	}
 
