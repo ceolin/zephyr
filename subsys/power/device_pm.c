@@ -125,6 +125,15 @@ static int device_pm_request(const struct device *dev,
 		 * satisfied and this call just incremented the reference count
 		 * for this device.
 		 */
+		if (dev->pm->usage == 1) {
+			(void)device_set_power_state(dev,
+						     DEVICE_PM_ACTIVE_STATE,
+						     NULL, NULL);
+		} else if (dev->pm->usage == 0) {
+			(void)device_set_power_state(dev,
+						     DEVICE_PM_SUSPEND_STATE,
+						     NULL, NULL);
+		}
 		return 0;
 	}
 
