@@ -8,6 +8,7 @@
 #include <device.h>
 #include <devicetree.h>
 #include <drivers/gpio.h>
+#include <power/power.h>
 
 
 #define SLEEP_TIME_MS   2000
@@ -20,6 +21,12 @@ void main(void)
 	bool led_is_on = true;
 
 	__ASSERT_NO_MSG(device_is_ready(led.port));
+
+	/*
+	 * Don't let the system power down this device when the system
+	 * becomes inactive.
+	 */
+	device_busy_set(led.port);
 
 	while (true) {
 		gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
