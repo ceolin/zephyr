@@ -15,12 +15,6 @@
 #include <logging/log.h>
 LOG_MODULE_DECLARE(power);
 
-/* Ordinal of sufficient size to index available devices. */
-typedef uint16_t device_idx_t;
-
-/* The maximum value representable with a device_idx_t. */
-#define DEVICE_IDX_MAX ((device_idx_t)(-1))
-
 /* An array of all devices in the application. */
 static const struct device *all_devices;
 
@@ -30,10 +24,10 @@ static const struct device *all_devices;
 static const struct device *pm_devices[CONFIG_PM_MAX_DEVICES];
 
 /* Number of devices that support pm */
-static device_idx_t num_pm;
+static size_t num_pm;
 
 /* Number of devices successfully suspended. */
-static device_idx_t num_susp;
+static size_t num_susp;
 
 static bool should_suspend(const struct device *dev, uint32_t state)
 {
@@ -117,7 +111,7 @@ int pm_force_suspend_devices(void)
 
 void pm_resume_devices(void)
 {
-	device_idx_t pmi = num_pm - num_susp;
+	size_t pmi = num_pm - num_susp;
 
 	num_susp = 0;
 	while (pmi < num_pm) {
@@ -130,7 +124,7 @@ void pm_resume_devices(void)
 
 static bool check_device_in_list(const struct device *dev)
 {
-	device_idx_t i;
+	size_t i;
 
 	for (i = 0; i < num_pm; i++) {
 		if (pm_devices[i] == dev)
@@ -164,16 +158,13 @@ static int device_foreach_cb(const struct device *dev,
 void pm_create_device_list(void)
 {
 	size_t count = z_device_get_all_static(&all_devices);
-	device_idx_t pmi;
+	size_tx pmi;
 
 	/*
 	 * Create an ordered list of devices that will be suspended.
 	 * Ordering should be done based on dependencies. Devices
 	 * in the beginning of the list will be resumed first.
 	 */
-
-	__ASSERT_NO_MSG(count <= DEVICE_IDX_MAX);
-
 	num_pm = 0;
 	for (pmi = 0; pmi < count; pmi++) {
 		const struct device *dev = &all_devices[pmi];
