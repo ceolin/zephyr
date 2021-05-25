@@ -15,31 +15,6 @@
 #include <logging/log.h>
 LOG_MODULE_DECLARE(power);
 
-/*
- * FIXME: Remove the conditional inclusion of
- * core_devices array once we enble the capability
- * to build the device list based on devices power
- * and clock domain dependencies.
- */
-
-__weak const char *const z_pm_core_devices[] = {
-#if defined(CONFIG_SOC_FAMILY_NRF)
-	"CLOCK",
-	"sys_clock",
-	"UART_0",
-#elif defined(CONFIG_SOC_SERIES_CC13X2_CC26X2)
-	"sys_clock",
-	"UART_0",
-#elif defined(CONFIG_SOC_SERIES_KINETIS_K6X)
-	DT_LABEL(DT_INST(0, nxp_kinetis_ethernet)),
-#elif defined(CONFIG_NET_TEST)
-	"",
-#elif defined(CONFIG_SOC_SERIES_STM32L4X) || defined(CONFIG_SOC_SERIES_STM32WBX)
-	"sys_clock",
-#endif
-	NULL
-};
-
 /* Ordinal of sufficient size to index available devices. */
 typedef uint16_t device_idx_t;
 
@@ -52,7 +27,7 @@ static const struct device *all_devices;
 /* Indexes into all_devices for devices that support pm,
  * in dependency order (later may depend on earlier).
  */
-static device_idx_t pm_devices[CONFIG_PM_MAX_DEVICES];
+static const struct device *pm_devices[CONFIG_PM_MAX_DEVICES];
 
 /* Number of devices that support pm */
 static device_idx_t num_pm;
@@ -93,8 +68,7 @@ static int _pm_devices(uint32_t state)
 	num_susp = 0;
 
 	for (int i = num_pm - 1; i >= 0; i--) {
-		device_idx_t idx = pm_devices[i];
-		const struct device *dev = &all_devices[idx];
+		const struct device *dev = pm_devices[i];
 		bool suspend;
 		int rc;
 
@@ -147,19 +121,50 @@ void pm_resume_devices(void)
 
 	num_susp = 0;
 	while (pmi < num_pm) {
-		device_idx_t idx = pm_devices[pmi];
-
-		pm_device_state_set(&all_devices[idx],
+		pm_device_state_set(pm_devices[pmi],
 				       PM_DEVICE_STATE_ACTIVE,
 				       NULL, NULL);
 		++pmi;
 	}
 }
 
+static bool check_device_in_list(const struct device *dev)
+{
+	device_idx_t i;
+
+	for (i = 0; i < num_pm; i++) {
+		if (pm_devices[i] == dev)
+			return true;
+	}
+
+	return false;
+}
+
+static int device_foreach_cb(const struct device *dev,
+			     void *ctx)
+{
+	(void) device_required_foreach(dev, device_foreach_cb, ctx);
+
+	if (dev->pm_control == NULL) {
+		return 0;
+	}
+
+	if (check_device_in_list(dev)) {
+		return 0;
+	}
+
+	__ASSERT(num_pm <= CONFIG_PM_MAX_DEVICES,
+		"Number of pm devices is greater than CONFIG_PM_MAX_DEVICES");
+	pm_devices[num_pm] = dev;
+	num_pm++;
+
+	return 0;
+}
+
 void pm_create_device_list(void)
 {
 	size_t count = z_device_get_all_static(&all_devices);
-	device_idx_t pmi, core_dev;
+	device_idx_t pmi;
 
 	/*
 	 * Create an ordered list of devices that will be suspended.
@@ -169,17 +174,8 @@ void pm_create_device_list(void)
 
 	__ASSERT_NO_MSG(count <= DEVICE_IDX_MAX);
 
-	/* Reserve initial slots for core devices. */
-	core_dev = 0;
-	while (z_pm_core_devices[core_dev]) {
-		core_dev++;
-	}
-
-	num_pm = core_dev;
-	__ASSERT_NO_MSG(num_pm <= CONFIG_PM_MAX_DEVICES);
-
+	num_pm = 0;
 	for (pmi = 0; pmi < count; pmi++) {
-		device_idx_t cdi = 0;
 		const struct device *dev = &all_devices[pmi];
 
 		/* Ignore "device"s that don't support PM */
@@ -187,20 +183,10 @@ void pm_create_device_list(void)
 			continue;
 		}
 
-		/* Check if the device is a core device, which has a
-		 * reserved slot.
-		 */
-		while (z_pm_core_devices[cdi]) {
-			if (strcmp(dev->name, z_pm_core_devices[cdi]) == 0) {
-				pm_devices[cdi] = pmi;
-				break;
-			}
-			++cdi;
-		}
-
-		/* Append the device if it doesn't have a reserved slot. */
-		if (cdi == core_dev) {
-			pm_devices[num_pm++] = pmi;
+		(void) device_required_foreach(dev, device_foreach_cb, &num_pm);
+		if (!check_device_in_list(dev)) {
+			pm_devices[num_pm] = dev;
+			num_pm++;
 		}
 	}
 }
