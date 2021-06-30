@@ -31,3 +31,16 @@ properties:
         then the regulator must be requested before the supply GPIOS is
         set to an active state, and the supply GPIOS must be set to an
         inactive state before releasing the regulator.
+
+    wakeup-source:
+      required: false
+      type: boolean
+      description: |
+        Property to identify that a device can be used as wake up source.
+
+        When this property is provided a specific flag is set into the
+        device that tells the system that the device is capable of
+        wake up the system.
+
+        Wake up capable devices are enabled (interruptions will wake up
+        the system) by default but they can be disabled at runtime if necessary.
