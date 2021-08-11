@@ -382,6 +382,13 @@ struct device {
 	 * device_required_handles_get().
 	 */
 	const device_handle_t *const handles;
+	/** optional pointer to handles supported by this device.
+	 *
+	 * This encodes a sequence of sets of device handles that
+	 * depends on this node.  The individual sets are extracted
+	 * with dedicated API, such as device_supported_handles_get().
+	 */
+	const device_handle_t *const supported_handles;
 #ifdef CONFIG_PM_DEVICE
 	/** Power Management function */
 	pm_device_control_callback_t pm_control;
@@ -489,6 +496,39 @@ device_required_handles_get(const struct device *dev,
 }
 
 /**
+ * @brief Get the set of handles for devicetree that depends on this device.
+ *
+ * These are the device dependencies inferred from devicetree.
+ *
+ * @param dev the device for which dependencies are desired.
+ *
+ * @param count pointer to a place to store the number of devices provided at
+ * the returned pointer.  The value is not set if the call returns a null
+ * pointer.  The value may be set to zero.
+ *
+ * @return a pointer to a sequence of @p *count device handles, or a null
+ * pointer if @p dh does not provide dependency information.
+ */
+static inline const device_handle_t *
+device_supported_handles_get(const struct device *dev,
+			    size_t *count)
+{
+	const device_handle_t *rv = dev->supported_handles;
+
+	if (rv != NULL) {
+		size_t i = 0;
+
+		while ((rv[i] != DEVICE_HANDLE_ENDS)
+		       && (rv[i] != DEVICE_HANDLE_SEP)) {
+			++i;
+		}
+		*count = i;
+	}
+
+	return rv;
+}
+
+/**
  * @brief Visit every device that @p dev directly requires.
  *
  * Zephyr maintains information about which devices are directly required by
@@ -522,6 +562,42 @@ device_required_handles_get(const struct device *dev,
  * the negative value returned from the first visit that did not succeed.
  */
 int device_required_foreach(const struct device *dev,
+			  device_visitor_callback_t visitor_cb,
+			  void *context);
+
+/**
+ * @brief Visit every device that requires @p dev.
+ *
+ * Zephyr maintains information about which devices are directly supported by
+ * another device; for example an I2C controller is required by an I2C-based
+ * sensor.  Supported devices can derive from statically-defined devicetree
+ * relationships or dependencies registered at runtime.
+ *
+ * This API supports operating on the set of supported devices.  Example uses
+ * include making sure that devices are not suspended if there are other devices
+ * depending on them.
+ *
+ * There is no guarantee on the order in which required devices are visited.
+ *
+ * If the @p visitor function returns a negative value iteration is halted,
+ * and the returned value from the visitor is returned from this function.
+ *
+ * @note This API is not available to unprivileged threads.
+ *
+ * @param dev a device of interest.  The devices that this device supports on
+ * will be used as the set of devices to visit.  This parameter must not be
+ * null.
+ *
+ * @param visitor_cb the function that should be invoked on each device in the
+ * dependency set.  This parameter must not be null.
+ *
+ * @param context state that is passed through to the visitor function.  This
+ * parameter may be null if @p visitor tolerates a null @p context.
+ *
+ * @return The number of devices that were visited if all visits succeed, or
+ * the negative value returned from the first visit that did not succeed.
+ */
+int device_supported_foreach(const struct device *dev,
 			  device_visitor_callback_t visitor_cb,
 			  void *context);
 
@@ -640,6 +716,16 @@ static inline bool device_is_ready(const struct device *dev)
 			    (node_id),					\
 			    (dev_name)))
 
+/** Synthesize the name of the object that holds device ordinal and
+ * supported data.  If the object doesn't come from a devicetree
+ * node, use dev_name.
+ */
+#define Z_DEVICE_SUPPORTED_HANDLE_NAME(node_id, dev_name)	\
+	_CONCAT(__devicesupportedhdl_,			        \
+		COND_CODE_1(DT_NODE_EXISTS(node_id),		\
+			    (node_id),				\
+			    (dev_name)))
+
 #define Z_DEVICE_EXTRA_HANDLES(...)				\
 	FOR_EACH_NONEMPTY_TERM(IDENTITY, (,), __VA_ARGS__)
 
@@ -664,6 +750,7 @@ static inline bool device_is_ready(const struct device *dev)
 #define Z_DEVICE_DEFINE_PRE(node_id, dev_name, ...)			\
 	Z_DEVICE_DEFINE_HANDLES(node_id, dev_name, __VA_ARGS__)		\
 	Z_DEVICE_STATE_DEFINE(node_id, dev_name)			\
+	Z_DEVICE_DEFINE_SUPPORTED_HANDLES(node_id, dev_name, __VA_ARGS__) \
 	Z_DEVICE_DEFINE_PM_SLOT(dev_name)
 
 
@@ -705,9 +792,30 @@ BUILD_ASSERT(sizeof(device_handle_t) == 2, "fix the linker scripts");
 			DEVICE_HANDLE_ENDS,				\
 		};
 
+BUILD_ASSERT(sizeof(device_handle_t) == 2, "fix the linker scripts");
+#define Z_DEVICE_DEFINE_SUPPORTED_HANDLES(node_id, dev_name, ...)	\
+	extern const device_handle_t					\
+		Z_DEVICE_SUPPORTED_HANDLE_NAME(node_id, dev_name)[];	\
+	const device_handle_t						\
+	__aligned(sizeof(device_handle_t))				\
+	__attribute__((__weak__,					\
+		       __section__(".__device_handles_pass1")))	        \
+	Z_DEVICE_SUPPORTED_HANDLE_NAME(node_id, dev_name)[] = {	        \
+	COND_CODE_1(DT_NODE_EXISTS(node_id), (				\
+			DT_DEP_ORD(node_id),				\
+			DT_SUPPORTS_DEP_ORDS(node_id)			\
+		), (							\
+			DEVICE_HANDLE_NULL,				\
+		))							\
+			DEVICE_HANDLE_SEP,				\
+			Z_DEVICE_EXTRA_HANDLES(__VA_ARGS__)		\
+			DEVICE_HANDLE_ENDS,				\
+		};
+
 #define Z_DEVICE_DEFINE_INIT(node_id, dev_name, pm_control_fn)		\
-		.handles = Z_DEVICE_HANDLE_NAME(node_id, dev_name),	\
-		Z_DEVICE_DEFINE_PM_INIT(dev_name, pm_control_fn)
+	.handles = Z_DEVICE_HANDLE_NAME(node_id, dev_name),		\
+	.supported_handles = Z_DEVICE_SUPPORTED_HANDLE_NAME(node_id, dev_name),	\
+	Z_DEVICE_DEFINE_PM_INIT(dev_name, pm_control_fn)
 
 /* Like DEVICE_DEFINE but takes a node_id AND a dev_name, and trailing
  * dependency handles that come from outside devicetree.

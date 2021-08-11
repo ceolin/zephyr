@@ -94,6 +94,8 @@ GEN_ABSOLUTE_SYM(_DEVICE_STRUCT_SIZEOF, sizeof(const struct device));
 /* member offsets in the device structure. Used in image post-processing */
 GEN_ABSOLUTE_SYM(_DEVICE_STRUCT_HANDLES_OFFSET,
 		 offsetof(struct device, handles));
+GEN_ABSOLUTE_SYM(_DEVICE_STRUCT_SUPPORTED_HANDLES_OFFSET,
+		 offsetof(struct device, supported_handles));
 
 /* LCOV_EXCL_STOP */
 #endif /* ZEPHYR_KERNEL_INCLUDE_KERNEL_OFFSETS_H_ */
