@@ -129,6 +129,7 @@ class Device:
         # assigned by correlating the device struct handles pointer
         # value with the addr of a Handles instance.
         self.__handles = None
+        self.__supported_handles = None
 
     @property
     def obj_handles(self):
@@ -148,6 +149,26 @@ class Device:
             offset = self.ld_constants["DEVICE_STRUCT_HANDLES_OFFSET"]
             self.__handles = struct.unpack(format, data[offset:offset + size])[0]
         return self.__handles
+
+    @property
+    def obj_supported_handles(self):
+        """
+        Returns the value from the device struct supported handles
+        field, pointing to the array of handles for devices that
+        depends on this device.
+        """
+        if self.__supported_handles is None:
+            data = symbol_data(self.elf, self.sym)
+            format = "<" if self.elf.little_endian else ">"
+            if self.elf.elfclass == 32:
+                format += "I"
+                size = 4
+            else:
+                format += "Q"
+                size = 8
+            offset = self.ld_constants["DEVICE_STRUCT_SUPPORTED_HANDLES_OFFSET"]
+            self.__supported_handles = struct.unpack(format, data[offset:offset + size])[0]
+        return self.__supported_handles
 
 class Handles:
     def __init__(self, sym, addr, handles, node):
@@ -171,10 +192,12 @@ def main():
 
     devices = []
     handles = []
+    supported_handles = []
     # Leading _ are stripped from the stored constant key
     want_constants = set(["__device_start",
                           "_DEVICE_STRUCT_SIZEOF",
-                          "_DEVICE_STRUCT_HANDLES_OFFSET"])
+                          "_DEVICE_STRUCT_HANDLES_OFFSET",
+                          "_DEVICE_STRUCT_SUPPORTED_HANDLES_OFFSET",])
     ld_constants = dict()
 
     for section in elf.iter_sections():
@@ -199,6 +222,15 @@ def main():
                         node = edt.dep_ord2node[hdls[0]] if (hdls and hdls[0] != 0) else None
                         handles.append(Handles(sym, addr, hdls, node))
                         debug("handles %s %d %s" % (sym.name, hdls[0] if hdls else -1, node))
+                    elif sym.name.startswith("__devicesupportedhdl_"):
+                        hdls = symbol_handle_data(elf, sym)
+
+                        # The first element of the hdls array is the dependency
+                        # ordinal of the device, which identifies the devicetree
+                        # node.
+                        node = edt.dep_ord2node[hdls[0]] if (hdls and hdls[0] != 0) else None
+                        supported_handles.append(Handles(sym, addr, hdls, node))
+                        debug("supported handles %s %d %s" % (sym.name, hdls[0] if hdls else -1, node))
 
     assert len(want_constants) == len(ld_constants), "linker map data incomplete"
 
@@ -252,7 +284,45 @@ def main():
                 n = edt
             hvi += 1
 
-    # Compute the dependency graph induced from the full graph restricted to the
+    for handle in supported_handles:
+        debug("handle in supported handles: %s" % (handle.sym.name))
+        handle.device = None
+        for device in devices:
+            if handle.addr == device.obj_supported_handles:
+                handle.device = device
+                break
+            device = handle.device
+        assert device, 'no device for %s' % (handle.sym.name,)
+
+        device.supported_handle = handle
+
+        if device_size == 0:
+            device_size = device.sym.entry.st_size
+
+        n = handle.node
+        if n is not None:
+            debug("%s dev ordinal %d\n\t%s" % (n.path, device.dev_handle, ' ; '.join(str(_) for _ in handle.handles)))
+            used_nodes.add(n)
+            n.__device = device
+        else:
+            debug("orphan %d" % (device.dev_handle,))
+        hv = handle.handles
+        hvi = 1
+        handle.dev_deps = []
+        handle.ext_deps = []
+        deps = handle.dev_deps
+        while True:
+            h = hv[hvi]
+            if h == DEVICE_HANDLE_ENDS:
+                break
+            if h == DEVICE_HANDLE_SEP:
+                deps = handle.ext_deps
+            else:
+                deps.append(h)
+                n = edt
+            hvi += 1
+
+    # compute the dependency graph induced from the full graph restricted to the
     # the nodes that exist in the application.  Note that the edges in the
     # induced graph correspond to paths in the full graph.
     root = edt.dep_ord2node[0]
@@ -261,8 +331,11 @@ def main():
     for sn in used_nodes:
         # Where we're storing the final set of nodes: these are all used
         sn.__depends = set()
+        sn.__required = set()
 
         deps = set(sn.depends_on)
+        required = set(sn.required_by)
+
         debug("\nNode: %s\nOrig deps:\n\t%s" % (sn.path, "\n\t".join([dn.path for dn in deps])))
         while len(deps) > 0:
             dn = deps.pop()
@@ -274,6 +347,18 @@ def main():
                 for ddn in dn.depends_on:
                     deps.add(ddn)
         debug("final deps:\n\t%s\n" % ("\n\t".join([ _dn.path for _dn in sn.__depends])))
+
+        debug("\nNode: %s\nOrig required:\n\t%s" % (sn.path, "\n\t".join([dn.path for dn in required])))
+        while len(required) > 0:
+            dn = required.pop()
+            if dn in used_nodes:
+                # this is used
+                sn.__required.add(dn)
+            elif dn != root:
+                # forward the dependency up one level
+                for ddn in dn.required_by:
+                    required.add(ddn)
+        debug("%s final required:\n\t%s\n" % (sn.path, "\n\t".join([ _dn.path for _dn in sn.__required])))
 
     with open(args.output_source, "w") as fp:
         fp.write('#include <device.h>\n')
@@ -324,7 +409,48 @@ def main():
                 '%s[] = { %s };' % (hs.sym.name, ', '.join([handle_name(_h) for _h in hdls])),
                 '',
             ])
+            fp.write('\n'.join(lines))
 
+            hs = dev.supported_handle
+            assert hs, "no hs for %s" % (dev.sym.name,)
+            dep_paths = []
+            ext_paths = []
+            hdls = []
+
+            sn = hs.node
+            if sn:
+                hdls.extend(dn.__device.dev_handle for dn in sn.__required)
+                for dn in sn.required_by:
+                    if dn in sn.__required:
+                        dep_paths.append(dn.path)
+                    else:
+                        dep_paths.append('(%s)' % dn.path)
+            if len(hs.ext_deps) > 0:
+                # TODO: map these to something smaller?
+                ext_paths.extend(map(str, hs.ext_deps))
+                hdls.append(DEVICE_HANDLE_SEP)
+                hdls.extend(hs.ext_deps)
+
+            while len(hdls) < len(hs.handles):
+                hdls.append(DEVICE_HANDLE_ENDS)
+            assert len(hdls) == len(hs.handles), "%s handle overflow" % (dev.sym.name,)
+
+            lines = [
+                '',
+                '/* %d : %s:' % (dev.dev_handle, (sn and sn.path) or "sysinit"),
+            ]
+
+            if len(dep_paths) > 0:
+                lines.append(' * - %s' % ('\n * - '.join(dep_paths)))
+            if len(ext_paths) > 0:
+                lines.append(' * + %s' % ('\n * + '.join(ext_paths)))
+
+            lines.extend([
+                ' */',
+                'const device_handle_t __aligned(2) __attribute__((__section__(".__device_handles_pass2")))',
+                '%s[] = { %s };' % (hs.sym.name, ', '.join([handle_name(_h) for _h in hdls])),
+                '',
+            ])
             fp.write('\n'.join(lines))
 
 if __name__ == "__main__":
