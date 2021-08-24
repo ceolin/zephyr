@@ -73,6 +73,8 @@ enum pm_device_flag {
 	PM_DEVICE_FLAGS_WS_CAPABLE,
 	/** Indicates if the device is being used as wakeup source. */
 	PM_DEVICE_FLAGS_WS_ENABLED,
+	/** Indicates if the device has to ignore its children. */
+	PM_DEVICE_FLAGS_IGNORE_CHILDREN,
 	/** Number of flags (internal use only). */
 	PM_DEVICE_FLAG_COUNT
 };

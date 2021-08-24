@@ -846,14 +846,20 @@ BUILD_ASSERT(sizeof(device_handle_t) == 2, "fix the linker scripts");
  */
 #define Z_DEVICE_STATE_DEFINE(node_id, dev_name)			\
 	static struct device_state Z_DEVICE_STATE_NAME(dev_name) = {	\
-		.pm = {						        \
-			.flags = ATOMIC_INIT(COND_CODE_1(		\
+		.pm = {							\
+			.flags = ATOMIC_INIT((COND_CODE_1(		\
 					DT_NODE_EXISTS(node_id),	\
 					(DT_PROP_OR(			\
 					node_id, wakeup_source, 0)),	\
-					(0)) <<			        \
-				PM_DEVICE_FLAGS_WS_CAPABLE),		\
-		},                                                      \
+					(0)) <<				\
+				PM_DEVICE_FLAGS_WS_CAPABLE) |		\
+					(COND_CODE_1(			\
+					DT_NODE_EXISTS(node_id),	\
+					(DT_PROP_OR(			\
+					node_id, ignore_children, 0)),	\
+					(0)) <<				\
+				PM_DEVICE_FLAGS_IGNORE_CHILDREN)),	\
+		},							\
 	};
 
 #define Z_DEVICE_DEFINE_PM_INIT(dev_name, pm_control_fn)	\
