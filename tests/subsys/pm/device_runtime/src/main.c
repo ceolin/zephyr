@@ -42,7 +42,7 @@ void threadA_func(void *arg1, void *arg2, void *arg3)
 	k_sem_give(&sem);
 
 	/* Block waiting for device operation conclude */
-	ret = api->wait(dev);
+	ret = api->wait(dev, false);
 	zassert_true(ret == 0, "Fail to wait transaction");
 
 	/* At this point threadB should have put the device and
@@ -50,17 +50,10 @@ void threadA_func(void *arg1, void *arg2, void *arg3)
 	 */
 	zassert_true(dev->pm->state == PM_DEVICE_STATE_SUSPENDED, "Wrong state");
 
-	k_sem_take(&sem, K_FOREVER);
-
 	ret = api->open(dev);
 	zassert_true(ret == 0, "Fail to get device");
 
 	/* Lets allow threadB run */
-	k_sem_give(&sem);
-
-	ret = api->wait(dev);
-	zassert_true(ret == 0, "Fail to wait transaction");
-
 	zassert_true(dev->pm->state == PM_DEVICE_STATE_ACTIVE, "Wrong state");
 }
 
@@ -77,11 +70,10 @@ void threadB_func(void *arg1, void *arg2, void *arg3)
 	api->close(dev);
 
 	k_sem_give(&sem);
-	ret = api->wait(dev);
-	zassert_true(ret == 0, "Fail to wait transaction");
+	ret = api->wait(dev, true);
 
 	/* Check the state */
-	zassert_true(dev->pm->state == PM_DEVICE_STATE_SUSPENDED, "Wrong state");
+	zassert_true(dev->pm->state == PM_DEVICE_STATE_ACTIVE, "Wrong state");
 }
 
 /*
@@ -135,6 +127,31 @@ void test_teardown(void)
 	ret = api->close_sync(dev);
 	zassert_true(ret == 0, "Fail to suspend device");
 
+	zassert_true(dev->pm->state == PM_DEVICE_STATE_SUSPENDED, "Wrong state");
+}
+
+void test_poll(void)
+{
+	struct k_poll_event event;
+
+	dev = device_get_binding(DUMMY_DRIVER_NAME);
+	zassert_true(dev->pm->state == PM_DEVICE_STATE_ACTIVE, "Wrong state");
+
+	k_poll_event_init(&event, K_POLL_TYPE_DEVICE_SUSPENDED,
+			  K_POLL_MODE_NOTIFY_ONLY, (void *)dev);
+
+	/*
+	 * Make the current thread have higher priority than the
+	 * workqueue thread.
+	 */
+	k_thread_priority_set(k_current_get(), K_HIGHEST_THREAD_PRIO);
+
+	(void)pm_device_put_async(dev);
+	/* Ensure that this thread is running and will block in k_poll
+	 * then workqueue will run and asynchronous change the device state
+	 */
+	zassert_true(dev->pm->state == PM_DEVICE_STATE_ACTIVE, "Wrong state");
+	(void)k_poll(&event, 1, K_FOREVER);
 	zassert_true(dev->pm->state == PM_DEVICE_STATE_SUSPENDED, "Wrong state");
 }
 
@@ -200,7 +217,7 @@ void test_multiple_times(void)
 		zassert_true(ret == 0, "Fail to suspend device");
 	}
 
-	ret = api->wait(dev);
+	ret = api->wait(dev, false);
 	zassert_true(ret == 0, "Fail to wait transaction");
 
 	/* Check the state */
@@ -217,7 +234,7 @@ void test_multiple_times(void)
 		zassert_true(ret == 0, "Fail to suspend device");
 	}
 
-	ret = api->wait(dev);
+	ret = api->wait(dev, true);
 	zassert_true(ret == 0, "Fail to wait transaction");
 
 	/* Check the state */
@@ -232,6 +249,7 @@ void test_main(void)
 							test_setup,
 							test_teardown),
 			 ztest_unit_test(test_sync),
-			 ztest_unit_test(test_multiple_times));
+			 ztest_unit_test(test_multiple_times),
+			 ztest_unit_test(test_poll));
 	ztest_run_test_suite(device_runtime_test);
 }

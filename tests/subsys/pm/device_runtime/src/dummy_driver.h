@@ -12,7 +12,7 @@ typedef int (*dummy_api_open_t)(const struct device *dev);
 
 typedef int (*dummy_api_close_t)(const struct device *dev);
 
-typedef int (*dummy_api_wait_t)(const struct device *dev);
+typedef int (*dummy_api_wait_t)(const struct device *dev, bool active);
 
 struct dummy_driver_api {
 	dummy_api_open_t open;

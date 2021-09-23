@@ -9,9 +9,15 @@
 #include <pm/device_runtime.h>
 #include "dummy_driver.h"
 
-static int dummy_wait(const struct device *dev)
+static int dummy_wait(const struct device *dev, bool active)
 {
-	return pm_device_wait(dev, K_FOREVER);
+	struct k_poll_event event;
+
+	k_poll_event_init(&event, active ? K_POLL_TYPE_DEVICE_ACTIVE :
+		K_POLL_TYPE_DEVICE_SUSPENDED, K_POLL_MODE_NOTIFY_ONLY,
+		(void *)dev);
+
+	return k_poll(&event, 1, K_FOREVER);
 }
 
 static int dummy_open(const struct device *dev)
