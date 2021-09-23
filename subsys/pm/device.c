@@ -98,6 +98,7 @@ int pm_device_state_set(const struct device *dev,
 {
 	int ret;
 	enum pm_device_action action;
+	uint32_t poll_event;
 
 	if (dev->pm_control == NULL) {
 		return -ENOSYS;
@@ -116,6 +117,7 @@ int pm_device_state_set(const struct device *dev,
 		}
 
 		action = PM_DEVICE_ACTION_SUSPEND;
+		poll_event = K_POLL_STATE_DEVICE_SUSPENDED;
 		break;
 	case PM_DEVICE_STATE_ACTIVE:
 		if (dev->pm->state == PM_DEVICE_STATE_ACTIVE) {
@@ -123,6 +125,7 @@ int pm_device_state_set(const struct device *dev,
 		}
 
 		action = PM_DEVICE_ACTION_RESUME;
+		poll_event = K_POLL_STATE_DEVICE_ACTIVE;
 		break;
 	case PM_DEVICE_STATE_LOW_POWER:
 		if (dev->pm->state == state) {
@@ -130,6 +133,7 @@ int pm_device_state_set(const struct device *dev,
 		}
 
 		action = PM_DEVICE_ACTION_LOW_POWER;
+		poll_event = K_POLL_STATE_DEVICE_SUSPENDED;
 		break;
 	case PM_DEVICE_STATE_OFF:
 		if (dev->pm->state == state) {
@@ -137,6 +141,7 @@ int pm_device_state_set(const struct device *dev,
 		}
 
 		action = PM_DEVICE_ACTION_TURN_OFF;
+		poll_event = K_POLL_STATE_DEVICE_SUSPENDED;
 		break;
 	default:
 		return -ENOTSUP;
@@ -149,6 +154,11 @@ int pm_device_state_set(const struct device *dev,
 
 	dev->pm->state = state;
 
+#ifdef CONFIG_POLL
+	z_handle_obj_poll_events(&dev->pm->poll_events, poll_event);
+#else
+	(void)poll_event;
+#endif
 	return 0;
 }
 

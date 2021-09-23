@@ -5190,6 +5190,12 @@ enum _poll_types_bits {
 	/* msgq data availability */
 	_POLL_TYPE_MSGQ_DATA_AVAILABLE,
 
+	/* device active */
+	_POLL_TYPE_DEVICE_ACTIVE,
+
+	/* device suspended */
+	_POLL_TYPE_DEVICE_SUSPENDED,
+
 	_POLL_NUM_TYPES
 };
 
@@ -5214,6 +5220,12 @@ enum _poll_states_bits {
 
 	/* data is available to read on a message queue */
 	_POLL_STATE_MSGQ_DATA_AVAILABLE,
+
+	/* device is active */
+	_POLL_STATE_DEVICE_ACTIVE,
+
+	/* device is suspended */
+	_POLL_STATE_DEVICE_SUSPENDED,
 
 	_POLL_NUM_STATES
 };
@@ -5246,6 +5258,8 @@ enum _poll_states_bits {
 #define K_POLL_TYPE_DATA_AVAILABLE Z_POLL_TYPE_BIT(_POLL_TYPE_DATA_AVAILABLE)
 #define K_POLL_TYPE_FIFO_DATA_AVAILABLE K_POLL_TYPE_DATA_AVAILABLE
 #define K_POLL_TYPE_MSGQ_DATA_AVAILABLE Z_POLL_TYPE_BIT(_POLL_TYPE_MSGQ_DATA_AVAILABLE)
+#define K_POLL_TYPE_DEVICE_ACTIVE Z_POLL_TYPE_BIT(_POLL_TYPE_DEVICE_ACTIVE)
+#define K_POLL_TYPE_DEVICE_SUSPENDED Z_POLL_TYPE_BIT(_POLL_TYPE_DEVICE_SUSPENDED)
 
 /* public - polling modes */
 enum k_poll_modes {
@@ -5262,6 +5276,8 @@ enum k_poll_modes {
 #define K_POLL_STATE_DATA_AVAILABLE Z_POLL_STATE_BIT(_POLL_STATE_DATA_AVAILABLE)
 #define K_POLL_STATE_FIFO_DATA_AVAILABLE K_POLL_STATE_DATA_AVAILABLE
 #define K_POLL_STATE_MSGQ_DATA_AVAILABLE Z_POLL_STATE_BIT(_POLL_STATE_MSGQ_DATA_AVAILABLE)
+#define K_POLL_STATE_DEVICE_ACTIVE Z_POLL_STATE_BIT(_POLL_STATE_DEVICE_ACTIVE)
+#define K_POLL_STATE_DEVICE_SUSPENDED Z_POLL_STATE_BIT(_POLL_STATE_DEVICE_SUSPENDED)
 #define K_POLL_STATE_CANCELLED Z_POLL_STATE_BIT(_POLL_STATE_CANCELLED)
 
 /* public - poll signal object */
@@ -5319,6 +5335,7 @@ struct k_poll_event {
 		struct k_fifo *fifo;
 		struct k_queue *queue;
 		struct k_msgq *msgq;
+		struct device *dev;
 	};
 };
 

@@ -103,6 +103,8 @@ struct pm_device {
 	struct k_work_delayable work;
 	/** Event conditional var to listen to the sync request events */
 	struct k_condvar condvar;
+
+	_POLL_EVENT;
 };
 
 /**
@@ -124,6 +126,7 @@ struct pm_device {
 				DT_NODE_EXISTS(node_id),		\
 				(DT_PROP_OR(node_id, wakeup_source, 0)),\
 				(0)) << PM_DEVICE_FLAGS_WS_CAPABLE),	\
+		_POLL_EVENT_OBJ_INIT(obj)				\
 	}
 
 /**

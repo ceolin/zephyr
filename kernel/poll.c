@@ -15,6 +15,7 @@
  */
 
 #include <kernel.h>
+#include <device.h>
 #include <kernel_structs.h>
 #include <kernel_internal.h>
 #include <wait_q.h>
@@ -24,6 +25,7 @@
 #include <sys/util.h>
 #include <sys/__assert.h>
 #include <stdbool.h>
+#include <pm/device.h>
 
 /* Single subsystem lock.  Locking per-event would be better on highly
  * contended SMP systems, but the original locking scheme here is
@@ -58,6 +60,28 @@ void k_poll_event_init(struct k_poll_event *event, uint32_t type,
 	SYS_PORT_TRACING_FUNC(k_poll_api, event_init, event);
 }
 
+static bool check_device_state(const struct device *dev, enum pm_device_state expected_state)
+{
+
+#ifdef CONFIG_PM_DEVICE
+	int ret;
+	enum pm_device_state state;
+
+	ret = pm_device_state_get(dev, &state);
+
+	switch (ret) {
+	case 0:
+		return state == expected_state;
+	case -ENOSYS:
+		break;
+	default:
+		break;
+	}
+#endif
+
+	return false;
+}
+
 /* must be called with interrupts locked */
 static inline bool is_condition_met(struct k_poll_event *event, uint32_t *state)
 {
@@ -83,6 +107,18 @@ static inline bool is_condition_met(struct k_poll_event *event, uint32_t *state)
 	case K_POLL_TYPE_MSGQ_DATA_AVAILABLE:
 		if (event->msgq->used_msgs > 0) {
 			*state = K_POLL_STATE_MSGQ_DATA_AVAILABLE;
+			return true;
+		}
+		break;
+	case K_POLL_TYPE_DEVICE_ACTIVE:
+		if (check_device_state(event->dev, PM_DEVICE_STATE_ACTIVE)) {
+			*state = K_POLL_STATE_DEVICE_ACTIVE;
+			return true;
+		}
+		break;
+	case K_POLL_TYPE_DEVICE_SUSPENDED:
+		if (check_device_state(event->dev, PM_DEVICE_STATE_SUSPENDED)) {
+			*state = K_POLL_STATE_DEVICE_SUSPENDED;
 			return true;
 		}
 		break;
@@ -146,6 +182,14 @@ static inline void register_event(struct k_poll_event *event,
 		__ASSERT(event->msgq != NULL, "invalid message queue\n");
 		add_event(&event->msgq->poll_events, event, poller);
 		break;
+	case K_POLL_TYPE_DEVICE_ACTIVE:
+		__fallthrough;
+	case K_POLL_TYPE_DEVICE_SUSPENDED:
+		__ASSERT(event->dev != NULL, "invalid device\n");
+#ifdef CONFIG_PM_DEVICE
+		add_event(&event->dev->pm->poll_events, event, poller);
+#endif
+		break;
 	case K_POLL_TYPE_IGNORE:
 		/* nothing to do */
 		break;
@@ -179,6 +223,12 @@ static inline void clear_event_registration(struct k_poll_event *event)
 		break;
 	case K_POLL_TYPE_MSGQ_DATA_AVAILABLE:
 		__ASSERT(event->msgq != NULL, "invalid message queue\n");
+		remove_event = true;
+		break;
+	case K_POLL_TYPE_DEVICE_ACTIVE:
+		__fallthrough;
+	case K_POLL_TYPE_DEVICE_SUSPENDED:
+		__ASSERT(event->dev != NULL, "invalid device\n");
 		remove_event = true;
 		break;
 	case K_POLL_TYPE_IGNORE:
