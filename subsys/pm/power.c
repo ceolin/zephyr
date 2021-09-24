@@ -76,38 +76,53 @@ extern const struct device *__pm_device_slots_start[];
 /* Number of devices successfully suspended. */
 static size_t num_susp;
 
+static int _device_state_set(const struct device *dev, void *data)
+{
+	int ret;
+	enum pm_device_state state = *(enum pm_device_state *)data;
+
+	if (pm_device_is_busy(dev) || pm_device_wakeup_is_enabled(dev)) {
+		return 0;
+	}
+
+	ret = device_required_foreach((const struct device *)dev, _device_state_set, data);
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = pm_device_state_set(dev, state);
+	/* ignore devices not supporting or already at the given state */
+	if ((ret == -ENOSYS) || (ret == -ENOTSUP) || (ret == -EALREADY)) {
+		return 0;
+	} else if (ret < 0) {
+		LOG_ERR("Device %s did not enter %s state (%d)",
+			dev->name, pm_device_state_str(state), ret);
+		return ret;
+	}
+
+	__pm_device_slots_start[num_susp] = dev;
+	num_susp++;
+
+	return 0;
+}
+
 static int _pm_devices(enum pm_device_state state)
 {
+	int ret = 0;
 	const struct device *devs;
 	size_t devc;
 
 	devc = z_device_get_all_static(&devs);
-
 	num_susp = 0;
 
 	for (const struct device *dev = devs + devc - 1; dev >= devs; dev--) {
-		int ret;
-
-		/* ignore busy devices */
-		if (pm_device_is_busy(dev) || pm_device_wakeup_is_enabled(dev)) {
-			continue;
+		ret = _device_state_set(dev, (void *)&state);
+		if (ret < 0) {
+			break;
 		}
-
-		ret = pm_device_state_set(dev, state);
-		/* ignore devices not supporting or already at the given state */
-		if ((ret == -ENOSYS) || (ret == -ENOTSUP) || (ret == -EALREADY)) {
-			continue;
-		} else if (ret < 0) {
-			LOG_ERR("Device %s did not enter %s state (%d)",
-				dev->name, pm_device_state_str(state), ret);
-			return ret;
-		}
-
-		__pm_device_slots_start[num_susp] = dev;
-		num_susp++;
 	}
 
-	return 0;
+	return ret;
 }
 
 static void pm_resume_devices(void)
