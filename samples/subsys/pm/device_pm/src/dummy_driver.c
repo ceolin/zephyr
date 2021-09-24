@@ -15,6 +15,10 @@ static int dummy_open(const struct device *dev)
 {
 	int ret;
 	enum pm_device_state state;
+	struct k_poll_event event = K_POLL_EVENT_INITIALIZER(
+		K_POLL_TYPE_DEVICE_ACTIVE,
+		K_POLL_MODE_NOTIFY_ONLY,
+		(void *)dev);
 
 	printk("open()\n");
 
@@ -31,7 +35,11 @@ static int dummy_open(const struct device *dev)
 
 	printk("Async wakeup request queued\n");
 
-	(void) pm_device_wait(dev, K_FOREVER);
+	ret = k_poll(&event, 1, K_FOREVER);
+	if (ret < 0) {
+		printk("Fail to wait on poll\n");
+		return ret;
+	}
 
 	(void)pm_device_state_get(dev, &state);
 	if (state == PM_DEVICE_STATE_ACTIVE) {
