@@ -465,9 +465,6 @@ bring the device to resume state if it was suspended. If the device
 was already active, it just increments the device usage count.
 The API returns 0 on success.
 
-Device drivers can monitor this operation to finish calling
-:c:func:`pm_device_wait`.
-
 Resume Device synchronously API
 -------------------------------
 
@@ -490,9 +487,6 @@ Suspend Device asynchronously API
 Releases a device. This API asynchronously puts the device to suspend
 state if not already in suspend state if the usage count of this device
 reaches 0.
-
-Device drivers can monitor this operation to finish calling
-:c:func:`pm_device_wait`.
 
 Suspend Device synchronously API
 --------------------------------
