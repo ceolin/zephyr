@@ -101,8 +101,6 @@ struct pm_device {
 	enum pm_device_state state;
 	/** Work object for asynchronous calls */
 	struct k_work_delayable work;
-	/** Event conditional var to listen to the sync request events */
-	struct k_condvar condvar;
 
 	_POLL_EVENT;
 };
@@ -120,7 +118,6 @@ struct pm_device {
 	{								\
 		.usage = 0U,						\
 		.lock = Z_MUTEX_INITIALIZER(obj.lock),			\
-		.condvar = Z_CONDVAR_INITIALIZER(obj.condvar),		\
 		.state = PM_DEVICE_STATE_ACTIVE,			\
 		.flags = ATOMIC_INIT(COND_CODE_1(			\
 				DT_NODE_EXISTS(node_id),		\

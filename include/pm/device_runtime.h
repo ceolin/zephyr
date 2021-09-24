@@ -65,7 +65,7 @@ void pm_device_disable(const struct device *dev);
  * the caller is interested in.
  * @retval 0 If successfully queued the Async request. If queued,
  * the caller need to wait on the poll event linked to device
- * pm signal mechanism to know the completion of resume operation.
+ * to know the completion of resume operation.
  * @retval Errno Negative errno code if failure.
  */
 int pm_device_get_async(const struct device *dev);
@@ -98,7 +98,7 @@ int pm_device_get(const struct device *dev);
  * the caller is interested in.
  * @retval 0 If successfully queued the Async request. If queued,
  * the caller need to wait on the poll event linked to device pm
- * signal mechanism to know the completion of suspend operation.
+ * to know the completion of suspend operation.
  * @retval Errno Negative errno code if failure.
  */
 int pm_device_put_async(const struct device *dev);
@@ -118,22 +118,6 @@ int pm_device_put_async(const struct device *dev);
  */
 int pm_device_put(const struct device *dev);
 
-/**
- * @brief Wait on a device to finish an operation.
- *
- * The calling thread blocks until the device finishes a
- * @ref pm_device_put_async or @ref pm_device_get_async operation. If there is
- * no operation in progress this function will return immediately.
- *
- * @param dev Pointer to device structure of the specific device driver
- * the caller is interested in.
- * @param timeout The timeout passed to k_condvar_wait. If a timeout happens
- * this function will return immediately.
- * @retval 0 If successful.
- * @retval Errno Negative errno code if failure.
- */
-int pm_device_wait(const struct device *dev, k_timeout_t timeout);
-
 #else
 static inline void pm_device_enable(const struct device *dev) { }
 static inline void pm_device_disable(const struct device *dev) { }
@@ -141,8 +125,6 @@ static inline int pm_device_get(const struct device *dev) { return -ENOSYS; }
 static inline int pm_device_get_async(const struct device *dev) { return -ENOSYS; }
 static inline int pm_device_put(const struct device *dev) { return -ENOSYS; }
 static inline int pm_device_put_async(const struct device *dev) { return -ENOSYS; }
-static inline int pm_device_wait(const struct device *dev,
-		k_timeout_t timeout) { return -ENOSYS; }
 #endif
 
 /** @} */

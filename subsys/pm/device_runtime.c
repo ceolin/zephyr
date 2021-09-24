@@ -43,12 +43,6 @@ static void pm_device_runtime_state_set(struct pm_device *pm)
 	}
 
 	__ASSERT(ret == 0, "Set Power state error");
-
-	/*
-	 * This function returns the number of woken threads on success. There
-	 * is nothing we can do with this information. Just ignoring it.
-	 */
-	(void)k_condvar_broadcast(&dev->pm->condvar);
 }
 
 static void pm_work_handler(struct k_work *work)
@@ -130,15 +124,23 @@ static int pm_device_request(const struct device *dev,
 		goto out_unlock;
 	}
 
+	(void)k_mutex_unlock(&dev->pm->lock);
 	while ((k_work_delayable_is_pending(&dev->pm->work)) ||
 	       atomic_test_bit(&dev->pm->flags, PM_DEVICE_FLAG_TRANSITIONING)) {
-		ret = k_condvar_wait(&dev->pm->condvar, &dev->pm->lock,
-			       K_FOREVER);
+		struct k_poll_event events[] = {
+			K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_DEVICE_SUSPENDED,
+						 K_POLL_MODE_NOTIFY_ONLY, (void *)dev),
+			K_POLL_EVENT_INITIALIZER(K_POLL_TYPE_DEVICE_ACTIVE,
+						 K_POLL_MODE_NOTIFY_ONLY, (void *)dev),
+		};
+
+		ret = k_poll(events, 2, K_FOREVER);
 		if (ret != 0) {
 			break;
 		}
 	}
 
+	(void)k_mutex_lock(&dev->pm->lock, K_FOREVER);
 	pm_device_runtime_state_set(dev->pm);
 
 	/*
@@ -228,22 +230,4 @@ void pm_device_disable(const struct device *dev)
 	}
 	(void)k_mutex_unlock(&dev->pm->lock);
 	SYS_PORT_TRACING_FUNC_EXIT(pm, device_disable, dev);
-}
-
-int pm_device_wait(const struct device *dev, k_timeout_t timeout)
-{
-	int ret = 0;
-
-	k_mutex_lock(&dev->pm->lock, K_FOREVER);
-	while ((k_work_delayable_is_pending(&dev->pm->work)) ||
-	       atomic_test_bit(&dev->pm->flags, PM_DEVICE_FLAG_TRANSITIONING)) {
-		ret = k_condvar_wait(&dev->pm->condvar, &dev->pm->lock,
-			       timeout);
-		if (ret != 0) {
-			break;
-		}
-	}
-	k_mutex_unlock(&dev->pm->lock);
-
-	return ret;
 }
