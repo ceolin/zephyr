@@ -273,6 +273,73 @@ struct pm_device {
 #define PM_DEVICE_DT_INST_REF(idx) \
 	PM_DEVICE_DT_REF(DT_DRV_INST(idx))
 
+
+/**
+ * @brief Helper macro to initialize an entry of a struct pm_state array when
+ * using UTIL_LISTIFY in PM_STATE_LIST_FROM_DT_CPU.
+ *
+ * @param i UTIL_LISTIFY entry index.
+ * @param node_id A node identifier with compatible zephyr,power-state
+ */
+#define Z_PM_STATE_CONSTRAINT_FROM_DT_DEVICE(i, node_id) \
+	PM_STATE_DT_INIT(DT_PHANDLE_BY_IDX(node_id, wakeup_constraints, i)),
+
+/**
+ * @brief Obtain number of CPU power states constraints for the given device node
+ * identifier.
+ *
+ * @param node_id A device node identifier.
+ * @return Number of cpu power states constraints when the device is used as
+ *         wake up source.
+ */
+#define DT_NUM_DEVICE_POWER_STATES_CONSTRAINTS(node_id) \
+	DT_PROP_LEN_OR(node_id, wakeup_constraints, 0)
+
+/**
+ * @brief Initialize an array of struct pm_state with information from all the
+ * states present in the given device node identifier.
+ *
+ * Example devicetree fragment:
+ *
+ * @code{.dts}
+ *	gpiob: gpio@f01602 {
+ *		compatible = "sample,sample-gpio";
+ *		wakeup-source;
+ *		wakeup-constraints = <&state0 &state1>;
+ *	};
+ *
+ *	...
+ *	power-states {
+ *		state0: state0 {
+ *			compatible = "zephyr,power-state";
+ *			power-state-name = "suspend-to-idle";
+ *			min-residency-us = <10000>;
+ *			exit-latency-us = <100>;
+ *		};
+ *
+ *		state1: state1 {
+ *			compatible = "zephyr,power-state";
+ *			power-state-name = "suspend-to-ram";
+ *			min-residency-us = <50000>;
+ *			exit-latency-us = <500>;
+ *		};
+ *	};
+ * @endcode
+ *
+ * Example usage:
+ *
+ * @code{.c}
+ * const enum pm_state states[] = PM_STATE_CONSTRAINT_LIST_FROM_DT_DEVICE(DT_NODELABEL(deva);
+ * @endcode
+ *
+ * @param node_id A device node identifier.
+ */
+#define PM_STATE_CONSTRAINT_LIST_FROM_DT_DEVICE(node_id)		\
+	{								\
+		UTIL_LISTIFY(DT_NUM_DEVICE_POWER_STATES_CONSTRAINTS(node_id), \
+			     Z_PM_STATE_CONSTRAINT_FROM_DT_DEVICE, node_id) \
+	}
+
 /**
  * @brief Get name of device PM state
  *

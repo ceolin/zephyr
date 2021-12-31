@@ -16,3 +16,12 @@ properties:
 
         Wake up capable devices are disabled (interruptions will not wake up
         the system) by default but they can be enabled at runtime if necessary.
+
+    wakeup-constraints:
+       type: phandles
+       required: false
+       description: |
+
+         List of power management states which the device can not operate as
+         wake up source. The pm subsystem will automatically set consraints
+         in these states when the device is used as wake up source.
