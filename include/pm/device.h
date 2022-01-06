@@ -499,6 +499,22 @@ bool pm_device_state_is_locked(const struct device *dev);
  */
 bool pm_device_on_power_domain(const struct device *dev);
 
+/**
+ * @brief Add a device to a power domain.
+ *
+ * This function adds a device to a given power domain.
+ *
+ * @param dev Device to be added to the power domain.
+ * @param domain Power domain.
+ *
+ * @retval 0 If successful.
+ * @retval -EALREADY If device is already part of the power domain.
+ * @retval -ENOTSUP If requested state is not supported.
+ * @retval -ENOSYS If the power domain does not support dynamically add devices.
+ * @retval -ENOSPC If there is no space available in the power domain to add the device.
+ */
+int pm_device_power_domain_add(const struct device *dev,
+			       const struct device *domain);
 #else
 static inline void pm_device_busy_set(const struct device *dev) {}
 static inline void pm_device_busy_clear(const struct device *dev) {}
@@ -526,6 +542,13 @@ static inline bool pm_device_on_power_domain(const struct device *dev)
 {
 	return false;
 }
+
+static inline void pm_device_power_domain_add(const struct device *dev,
+					      const struct device *domain)
+{
+	return -ENOSYS;
+}
+
 #endif /* CONFIG_PM_DEVICE */
 
 /**
