@@ -12,19 +12,20 @@
 #define SRAM_ALIAS_MASK         0xF0000000
 
 #define uncache_to_cache(address) \
-				((__typeof__(address))(((uint32_t)(address) &  \
-				~SRAM_ALIAS_MASK) | SRAM_ALIAS_BASE))
+		((__typeof__(address))(((uint32_t)(address) & \
+		~SRAM_ALIAS_MASK) | SRAM_ALIAS_BASE))
 
 /**
  * @brief Power down procedure.
  *
  * Locks its code in L1 cache and shuts down memories.
- * NOTE: there's no return from this function.
+ * @note There's no return from this function.
  *
- * @param disable_lpsram        flag if LPSRAM is to be disabled (whole)
- * @param hpsram_pg_mask pointer to memory segments power gating mask
- * (each bit corresponds to one ebb)
- * @param response_to_ipc       flag if ipc response should be send during power down
+ * @param disable_lpsram     flag if LPSRAM is to be disabled (whole)
+ * @param hpsram_pg_mask     pointer to memory segments power gating mask
+ *                           (each bit corresponds to one ebb)
+ * @param response_to_ipc    flag if ipc response should be send
+ *                           during power down
  */
 extern void ace_power_down(bool disable_lpsram, uint32_t *hpsram_pg_mask,
 			   bool response_to_ipc);
@@ -49,7 +50,6 @@ __weak void pm_state_set(enum pm_state state, uint8_t substate_id)
 		} else {
 			k_cpu_idle();
 		}
-
 		break;
 	case PM_STATE_SUSPEND_TO_IDLE: /* D0ix */
 		__fallthrough;
@@ -70,7 +70,10 @@ __weak void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id)
 
 	switch (state) {
 	case PM_STATE_SOFT_OFF:/* D3 */
-		/* TODO: move clock gating prevent to imr restore vector when it will be ready. */
+		/*
+		 * TODO: move clock gating prevent to imr restore
+		 * vector when it will be ready.
+		 */
 		DFDSPBRCP.bootctl[cpu].bctl |= DFDSPBRCP_BCTL_WAITIPCG;
 		soc_cpus_active[cpu] = true;
 		z_xtensa_cache_flush_inv_all();
