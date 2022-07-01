@@ -51,11 +51,6 @@ __weak void pm_state_set(enum pm_state state, uint8_t substate_id)
 			k_cpu_idle();
 		}
 		break;
-	case PM_STATE_SUSPEND_TO_IDLE: /* D0ix */
-		__fallthrough;
-	case PM_STATE_RUNTIME_IDLE:/* D0 */
-		k_cpu_idle();
-		break;
 	default:
 		__ASSERT(false, "invalid argument - unsupported power state");
 		break;
@@ -77,10 +72,6 @@ __weak void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id)
 		DFDSPBRCP.bootctl[cpu].bctl |= DFDSPBRCP_BCTL_WAITIPCG;
 		soc_cpus_active[cpu] = true;
 		z_xtensa_cache_flush_inv_all();
-		__fallthrough;
-	case PM_STATE_SUSPEND_TO_IDLE: /* D0ix */
-		__fallthrough;
-	case PM_STATE_RUNTIME_IDLE:/* D0 */
 		break;
 	default:
 		__ASSERT(false, "invalid argument - unsupported power state");
