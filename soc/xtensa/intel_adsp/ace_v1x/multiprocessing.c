@@ -17,7 +17,8 @@
 
 static void ipc_isr(void *arg)
 {
-	MTL_P2P_IPC[arch_proc_id()].agents[0].ipc.tdr = BIT(31); /* clear BUSY bit */
+	/* clear BUSY bit */
+	MTL_P2P_IPC[arch_proc_id()].agents[0].ipc.tdr = BIT(31);
 #ifdef CONFIG_SMP
 	void z_sched_ipi(void);
 	z_sched_ipi();
@@ -53,7 +54,8 @@ void soc_start_core(int cpu_num)
 		z_xtensa_cache_flush(rom_jump_vector, sizeof(*rom_jump_vector));
 
 		/* Tell the ACE ROM that it should use secondary core flow */
-		DFDSPBRCP.bootctl[cpu_num].battr |= DFDSPBRCP_BATTR_LPSCTL_BATTR_SLAVE_CORE;
+		DFDSPBRCP.bootctl[cpu_num].battr |=
+			DFDSPBRCP_BATTR_LPSCTL_BATTR_SLAVE_CORE;
 	}
 
 	DFDSPBRCP.capctl[cpu_num].ctl |= DFDSPBRCP_CTL_SPA;
@@ -64,7 +66,8 @@ void soc_start_core(int cpu_num)
 	}
 
 	if (!retry) {
-		__ASSERT(false, "%s secondary core has not powered up", __func__);
+		__ASSERT(false, "%s secondary core has not powered up",
+			 __func__);
 	}
 }
 
@@ -109,11 +112,13 @@ int soc_adsp_halt_cpu(int id)
 	DFDSPBRCP.capctl[id].ctl &= ~DFDSPBRCP_CTL_SPA;
 
 	/* Waiting for power off */
-	while (DFDSPBRCP.capctl[id].ctl & DFDSPBRCP_CTL_CPA && --retry)
+	while (DFDSPBRCP.capctl[id].ctl & DFDSPBRCP_CTL_CPA && --retry) {
 		k_busy_wait(CORE_POWER_CHECK_DELAY);
+	}
 
 	if (!retry) {
-		__ASSERT(false, "%s secondary core has not powered down", __func__);
+		__ASSERT(false, "%s secondary core has not powered down",
+			 __func__);
 		return -EINVAL;
 	}
 
