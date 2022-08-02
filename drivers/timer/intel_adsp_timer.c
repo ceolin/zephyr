@@ -185,6 +185,11 @@ static void irq_init(void)
 {
 	int cpu = arch_curr_cpu()->id;
 
+	/* Lets just core 0 handle timer interruptions */
+	if (cpu != 0) {
+		return;
+	}
+
 	/* These platforms have an extra layer of interrupt masking
 	 * (for per-core control) above the interrupt controller.
 	 * Drivers need to do that part.
