@@ -236,6 +236,10 @@ void z_set_timeout_expiry(int32_t ticks, bool is_idle)
 	}
 }
 
+#if defined(CONFIG_SMP)
+static bool processing_timeouts;
+#endif
+
 void sys_clock_announce(int32_t ticks)
 {
 #ifdef CONFIG_TIMESLICING
@@ -244,19 +248,21 @@ void sys_clock_announce(int32_t ticks)
 
 	k_spinlock_key_t key = k_spin_lock(&timeout_lock);
 
+#if defined(CONFIG_SMP)
 	/* We release the lock around the callbacks below, so on SMP
 	 * systems someone might be already running the loop.  Don't
 	 * race (which will cause paralllel execution of "sequential"
 	 * timeouts and confuse apps), just increment the tick count
 	 * and return.
 	 */
-	if (IS_ENABLED(CONFIG_SMP) && announce_remaining != 0) {
+	if (processing_timeouts) {
 		announce_remaining += ticks;
 		k_spin_unlock(&timeout_lock, key);
 		return;
 	}
-
+	processing_timeouts = true;
 	announce_remaining = ticks;
+#endif
 
 	while (first() != NULL && first()->dticks <= announce_remaining) {
 		struct _timeout *t = first();
@@ -280,6 +286,10 @@ void sys_clock_announce(int32_t ticks)
 	announce_remaining = 0;
 
 	sys_clock_set_timeout(next_timeout(), false);
+
+#if defined(CONFIG_SMP)
+	processing_timeouts = false;
+#endif
 
 	k_spin_unlock(&timeout_lock, key);
 }
