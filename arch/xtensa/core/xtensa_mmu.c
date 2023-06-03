@@ -240,8 +240,7 @@ static inline uint32_t *alloc_l2_table(void)
 static ALWAYS_INLINE void switch_page_tables(uint32_t *ptables, bool dtlb_inv, bool cache_inv)
 {
 	if (cache_inv) {
-		sys_cache_data_invd_range((void *)ptables, XTENSA_L1_PAGE_TABLE_SIZE);
-		sys_cache_data_invd_range((void *)l2_page_tables, sizeof(l2_page_tables));
+		sys_cache_data_flush_and_invd_all();
 	}
 
 	/* Invalidate data TLB to L1 page table */
@@ -689,6 +688,7 @@ void arch_mem_map(void *virt, uintptr_t phys, size_t size, uint32_t flags)
 	z_xtensa_mmu_tlb_ipi();
 #endif
 
+	sys_cache_data_flush_and_invd_all();
 	k_spin_unlock(&xtensa_mmu_lock, key);
 }
 
@@ -825,6 +825,7 @@ void arch_mem_unmap(void *addr, size_t size)
 	z_xtensa_mmu_tlb_ipi();
 #endif
 
+	sys_cache_data_flush_and_invd_all();
 	k_spin_unlock(&xtensa_mmu_lock, key);
 }
 
@@ -878,7 +879,7 @@ void z_xtensa_mmu_tlb_shootdown(void)
 			 * indicated by the current thread are different
 			 * than the current mapped page table.
 			 */
-			switch_page_tables((uint32_t *)thread_ptables, false, false);
+			switch_page_tables((uint32_t *)thread_ptables, true, true);
 		}
 
 	}
@@ -1059,6 +1060,7 @@ static inline int update_region(uint32_t *ptables, uintptr_t start,
 	}
 #endif
 
+	sys_cache_data_flush_and_invd_all();
 	k_spin_unlock(&xtensa_mmu_lock, key);
 
 	return ret;
