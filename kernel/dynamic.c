@@ -69,12 +69,11 @@ k_thread_stack_t *z_impl_k_thread_stack_alloc(size_t size, int flags)
 		align = Z_THREAD_STACK_OBJ_ALIGN(size);
 		obj_size = Z_THREAD_STACK_SIZE_ADJUST(size);
 	} else
-#else
+#endif
 	{
 		align = Z_KERNEL_STACK_OBJ_ALIGN;
 		obj_size = Z_KERNEL_STACK_SIZE_ADJUST(size);
 	}
-#endif
 
 	if (IS_ENABLED(CONFIG_DYNAMIC_THREAD_PREFER_ALLOC) &&
 		    IS_ENABLED(CONFIG_DYNAMIC_THREAD_ALLOC)) {
