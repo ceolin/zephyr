@@ -19,11 +19,20 @@ static void user_function(void *p1, void *p2, void *p3)
 	__ASSERT(k_is_user_context(), "User mode execution was expected");
 }
 
-
 int main(void)
 {
-	k_thread_create(&user_thread, user_stack, USER_STACKSIZE,
+	k_tid_t tid;
+	k_thread_stack_t *stack;
+
+	k_thread_system_pool_assign(k_current_get());
+
+	stack = k_thread_stack_alloc(USER_STACKSIZE, K_USER);
+	tid = k_thread_create(&user_thread, stack, USER_STACKSIZE,
 			user_function, NULL, NULL, NULL,
 			-1, K_USER, K_MSEC(0));
+
+	k_thread_join(tid, K_FOREVER);
+	k_thread_stack_free(stack);
+
 	return 0;
 }
