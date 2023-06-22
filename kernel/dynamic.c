@@ -75,8 +75,7 @@ k_thread_stack_t *z_impl_k_thread_stack_alloc(size_t size, int flags)
 		obj_size = Z_KERNEL_STACK_SIZE_ADJUST(size);
 	}
 
-	if (IS_ENABLED(CONFIG_DYNAMIC_THREAD_PREFER_ALLOC) &&
-		    IS_ENABLED(CONFIG_DYNAMIC_THREAD_ALLOC)) {
+	if (IS_ENABLED(CONFIG_DYNAMIC_THREAD_PREFER_ALLOC)) {
 		stack = z_thread_stack_alloc_dyn(align, obj_size);
 		if (stack == NULL && CONFIG_DYNAMIC_THREAD_POOL_SIZE > 0) {
 			stack = z_thread_stack_alloc_pool(size);
