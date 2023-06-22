@@ -10,6 +10,8 @@
 #include <zephyr/kernel/thread_stack.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/bitarray.h>
+#include <zephyr/sys/kobject.h>
+#include <zephyr/syscall_handler.h>
 
 LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
 
@@ -58,6 +60,22 @@ static k_thread_stack_t *z_thread_stack_alloc_pool(size_t size)
 	return stack;
 }
 
+static k_thread_stack_t *stack_alloc_dyn(size_t align, size_t size, int flags)
+{
+	if ((flags & K_USER) == K_USER) {
+#ifdef CONFIG_DYNAMIC_OBJECTS
+		return k_object_alloc_size(K_OBJ_THREAD_STACK_ELEMENT, size);
+#else
+		/* Dynamic user stack needs a kobject, so if this option is not
+		 * enabled we can't proceed.
+		 */
+		return NULL;
+#endif
+	}
+
+	return z_thread_stack_alloc_dyn(align, size);
+}
+
 k_thread_stack_t *z_impl_k_thread_stack_alloc(size_t size, int flags)
 {
 	size_t align = 0;
@@ -76,7 +94,7 @@ k_thread_stack_t *z_impl_k_thread_stack_alloc(size_t size, int flags)
 	}
 
 	if (IS_ENABLED(CONFIG_DYNAMIC_THREAD_PREFER_ALLOC)) {
-		stack = z_thread_stack_alloc_dyn(align, obj_size);
+		stack = stack_alloc_dyn(align, obj_size, flags);
 		if (stack == NULL && CONFIG_DYNAMIC_THREAD_POOL_SIZE > 0) {
 			stack = z_thread_stack_alloc_pool(size);
 		}
@@ -84,7 +102,7 @@ k_thread_stack_t *z_impl_k_thread_stack_alloc(size_t size, int flags)
 		   CONFIG_DYNAMIC_THREAD_POOL_SIZE > 0) {
 		stack = z_thread_stack_alloc_pool(size);
 		if (stack == NULL && IS_ENABLED(CONFIG_DYNAMIC_THREAD_ALLOC)) {
-			stack = z_thread_stack_alloc_dyn(align, obj_size);
+			stack = stack_alloc_dyn(align, obj_size, flags);
 		}
 	} else {
 		return NULL;
@@ -144,7 +162,15 @@ int z_impl_k_thread_stack_free(k_thread_stack_t *stack)
 	}
 
 	if (IS_ENABLED(CONFIG_DYNAMIC_THREAD_ALLOC)) {
+#ifdef CONFIG_USERSPACE
+		if (z_object_find(stack)) {
+			k_object_free(stack);
+		} else {
+			k_free(stack);
+		}
+#else
 		k_free(stack);
+#endif
 	} else {
 		LOG_ERR("Invalid stack %p", stack);
 		return -EINVAL;
