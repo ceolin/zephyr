@@ -133,13 +133,27 @@ uint8_t *z_priv_stack_find(k_thread_stack_t *stack)
 #define DYN_OBJ_DATA_ALIGN		\
 	MAX(DYN_OBJ_DATA_ALIGN_K_THREAD, (sizeof(void *)))
 
-struct dyn_obj {
+struct dyn_obj_base {
 	struct z_object kobj;
 	sys_dnode_t dobj_list;
 	struct rbnode node; /* must be immediately before data member */
+};
+
+struct dyn_obj {
+	struct dyn_obj_base base;
 
 	/* The object itself */
 	uint8_t data[] __aligned(DYN_OBJ_DATA_ALIGN_K_THREAD);
+};
+
+/* Thread stacks impose a very restrict alignment. Use this alignment
+ * (generally page size) for all objects will cause a lot waste memory.
+ */
+struct dyn_obj_stack {
+	struct dyn_obj_base base;
+
+	/* The object itself */
+	uint8_t data[] __aligned(CONFIG_MMU_PAGE_SIZE);
 };
 
 extern struct z_object *z_object_gperf_find(const void *obj);
@@ -193,6 +207,9 @@ static size_t obj_align_get(enum k_objects otype)
 		ret = __alignof(struct dyn_obj);
 #endif
 		break;
+	case K_OBJ_THREAD_STACK_ELEMENT:
+		ret = __alignof(struct dyn_obj_stack);
+		break;
 	default:
 		ret = __alignof(struct dyn_obj);
 		break;
@@ -206,22 +223,32 @@ static bool node_lessthan(struct rbnode *a, struct rbnode *b)
 	return a < b;
 }
 
-static inline struct dyn_obj *node_to_dyn_obj(struct rbnode *node)
+static inline struct dyn_obj_base *node_to_dyn_obj_base(struct rbnode *node)
 {
-	return CONTAINER_OF(node, struct dyn_obj, node);
+	return CONTAINER_OF(node, struct dyn_obj_base, node);
 }
 
 static inline struct rbnode *dyn_obj_to_node(void *obj)
 {
-	struct dyn_obj *dobj = CONTAINER_OF(obj, struct dyn_obj, data);
+	/* We try first checking for stack alignment since it is probably higher and other objects will
+	 * also be aligned with it.
+	 */
+	struct dyn_obj_stack *dobj_stack = CONTAINER_OF(obj, struct dyn_obj_stack, data);
 
-	return &dobj->node;
+	if (IS_PTR_ALIGNED(dobj_stack, struct dyn_obj_stack)) {
+		return &(dobj_stack->base.node);
+	} else {
+		struct dyn_obj *dobj = CONTAINER_OF(obj, struct dyn_obj, data);
+		return &(dobj->base.node);
+	}
+
+	return NULL;
 }
 
-static struct dyn_obj *dyn_object_find(void *obj)
+static struct dyn_obj_base *dyn_object_find(void *obj)
 {
 	struct rbnode *node;
-	struct dyn_obj *ret;
+	struct dyn_obj_base *ret;
 
 	/* For any dynamically allocated kernel object, the object
 	 * pointer is just a member of the containing struct dyn_obj,
@@ -229,10 +256,9 @@ static struct dyn_obj *dyn_object_find(void *obj)
 	 * corresponding struct rbnode
 	 */
 	node = dyn_obj_to_node(obj);
-
 	k_spinlock_key_t key = k_spin_lock(&lists_lock);
 	if (rb_contains(&obj_rb_tree, node)) {
-		ret = node_to_dyn_obj(node);
+		ret = node_to_dyn_obj_base(node);
 	} else {
 		ret = NULL;
 	}
@@ -306,15 +332,27 @@ static void thread_idx_free(uintptr_t tidx)
 
 struct z_object *z_dynamic_object_aligned_create(size_t align, size_t size)
 {
-	struct dyn_obj *dyn;
+	struct dyn_obj_base *dyn;
 
-	dyn = z_thread_aligned_alloc(align, sizeof(*dyn) + size);
-	if (dyn == NULL) {
-		LOG_ERR("could not allocate kernel object, out of memory");
-		return NULL;
+	if (align == obj_align_get(K_OBJ_THREAD_STACK_ELEMENT)) {
+		struct dyn_obj_stack *stack;
+
+		stack = z_thread_aligned_alloc(align, sizeof(struct dyn_obj_stack) + size);
+		if (stack == NULL) {
+			goto err;
+		}
+		dyn = &stack->base;
+		dyn->kobj.name = &stack->data;
+	} else {
+		struct dyn_obj *obj;
+		obj = z_thread_aligned_alloc(align, sizeof(struct dyn_obj) + size);
+		if (obj == NULL) {
+			goto err;
+		}
+		dyn = &obj->base;
+		dyn->kobj.name = &obj->data;
 	}
 
-	dyn->kobj.name = &dyn->data;
 	dyn->kobj.type = K_OBJ_ANY;
 	dyn->kobj.flags = 0;
 	(void)memset(dyn->kobj.perms, 0, CONFIG_MAX_THREAD_BYTES);
@@ -326,6 +364,10 @@ struct z_object *z_dynamic_object_aligned_create(size_t align, size_t size)
 	k_spin_unlock(&lists_lock, key);
 
 	return &dyn->kobj;
+
+ err:
+	LOG_ERR("could not allocate kernel object, out of memory");
+	return NULL;
 }
 
 static void *z_object_alloc(enum k_objects otype, size_t object_size)
@@ -345,11 +387,11 @@ static void *z_object_alloc(enum k_objects otype, size_t object_size)
 			return NULL;
 		}
 		break;
+	case K_OBJ_THREAD_STACK_ELEMENT:
+		break;
 	/* The following are currently not allowed at all */
 	case K_OBJ_FUTEX:			/* Lives in user memory */
 	case K_OBJ_SYS_MUTEX:			/* Lives in user memory */
-	case K_OBJ_THREAD_STACK_ELEMENT:
-		break;
 	case K_OBJ_NET_SOCKET:			/* Indeterminate size */
 		LOG_ERR("forbidden object type '%s' requested",
 			otype_to_str(otype));
@@ -398,7 +440,7 @@ void *z_impl_k_object_alloc_size(enum k_objects otype, size_t size)
 
 void k_object_free(void *obj)
 {
-	struct dyn_obj *dyn;
+	struct dyn_obj_base *dyn;
 
 	/* This function is intentionally not exposed to user mode.
 	 * There's currently no robust way to track that an object isn't
@@ -430,15 +472,15 @@ struct z_object *z_object_find(const void *obj)
 	ret = z_object_gperf_find(obj);
 
 	if (ret == NULL) {
-		struct dyn_obj *dynamic_obj;
+		struct dyn_obj_base *dyn;
 
 		/* The cast to pointer-to-non-const violates MISRA
 		 * 11.8 but is justified since we know dynamic objects
 		 * were not declared with a const qualifier.
 		 */
-		dynamic_obj = dyn_object_find((void *)obj);
-		if (dynamic_obj != NULL) {
-			ret = &dynamic_obj->kobj;
+		dyn = dyn_object_find((void *)obj);
+		if (dyn != NULL) {
+			ret = &dyn->kobj;
 		}
 	}
 
@@ -447,7 +489,7 @@ struct z_object *z_object_find(const void *obj)
 
 void z_object_wordlist_foreach(_wordlist_cb_func_t func, void *context)
 {
-	struct dyn_obj *obj, *next;
+	struct dyn_obj_base *obj, *next;
 
 	z_object_gperf_wordlist_foreach(func, context);
 
@@ -487,7 +529,7 @@ static void unref_check(struct z_object *ko, uintptr_t index)
 
 	void *vko = ko;
 
-	struct dyn_obj *dyn = CONTAINER_OF(vko, struct dyn_obj, kobj);
+	struct dyn_obj_base *dyn = CONTAINER_OF(vko, struct dyn_obj_base, kobj);
 
 	__ASSERT(IS_PTR_ALIGNED(dyn, struct dyn_obj), "unaligned z_object");
 
