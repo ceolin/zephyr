@@ -42,6 +42,7 @@
 				power-state-name = "standby";
 				min-residency-us = <200>;
 				exit-latency-us = <60>;
+				zephyr,pm-device-enabled;
 			};
 
 			deep_sleep: deep_sleep {
@@ -49,6 +50,7 @@
 				power-state-name = "soft-off";
 				min-residency-us = <660>;
 				exit-latency-us = <105>;
+				zephyr,pm-device-enabled;
 			};
 		};
 	};
