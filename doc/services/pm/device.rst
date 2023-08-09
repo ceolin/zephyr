@@ -20,18 +20,16 @@ Zephyr supports two types of device power management:
 Device Runtime Power Management
 *******************************
 
-In this method, the application or any component that deals with devices directly
-and has the best knowledge of their use, performs the device power management. This
-saves power if some devices that are not in use can be turned off or put
-in power saving mode. This method allows saving power even when the CPU is
-active. The components that use the devices need to be power aware and should
-be able to make decisions related to managing device power.
+In this method, it is assumed that devices have the best knowledge of their use
+and are responsible for their power management. This helps saving power
+because devices can be suspended even when the CPU is active.
+Components using these device do not need to be power aware because power
+management is entirely handled by the device driver.
 
-When using this type of device power management, the kernel can change CPU
-power states quickly when :c:func:`pm_system_suspend()` gets called. This is
-because it does not need to spend time doing device power management if the
-devices are already put in the appropriate power state by the application or
-component managing the devices.
+When using this type of device power management, the CPU is able to change
+power states quickly when :c:func:`pm_system_suspend()` is called because
+it does not need to spend time doing suspending and resuming devices that
+have this method enabled.
 
 For more information, see :ref:`pm-device-runtime`.
 
@@ -40,7 +38,7 @@ For more information, see :ref:`pm-device-runtime`.
 System Power Management
 ***********************
 
-When using this type, device power management is mostly done inside
+When using this method, device power management is mostly done inside
 :c:func:`pm_system_suspend()` along with entering a CPU or SOC power state.
 
 If a decision to enter a CPU lower power state is made, the power management
@@ -83,10 +81,18 @@ power management:
    As functions in this context cannot block, transitions that intend to use blocking
    APIs **must** check whether they can do so with :c:func:`k_can_yield`.
 
-This type of device power management can be useful when the application is not
-power aware and does not implement runtime device power management. Though,
-:ref:`Device Runtime Power Management <pm-device-runtime-pm>` is the **preferred**
-option for device power management.
+This type of device power management can be useful in certain scenarios:
+
+ - Simple devices that do not require any blocking operation when suspending and resuming.
+   This implementation is reasonably simpler than device runtime power management.
+ - For devices that can not any make power management decision and have to be always active. For
+   example a firmware using Zephyr that is controlled by an external entity (e.g Host CPU).
+   In this scenario, some devices have to be always active and should be suspended together with
+   the SoC when requested by this external entity.
+
+It is important to emphasize that his method has, already mentioned,
+drawback and :ref:`Device Runtime Power Management
+<pm-device-runtime-pm>` is the **preferred** option for device power
 
 .. note::
 
