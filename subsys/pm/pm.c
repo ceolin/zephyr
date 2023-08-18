@@ -215,8 +215,8 @@ bool pm_system_suspend(int32_t ticks)
 	}
 
 #if defined(CONFIG_PM_DEVICE) && DT_PM_DEVICE_NEEDED
-	if (atomic_sub(&_cpus_active, 1) == 1) {
-		if (z_cpus_pm_state[id].pm_device_enabled) {
+	if ((atomic_sub(&_cpus_active, 1) == 1) &&
+			z_cpus_pm_state[id].pm_device_enabled) {
 			if (pm_suspend_devices()) {
 				pm_resume_devices();
 				z_cpus_pm_state[id].state = PM_STATE_ACTIVE;
@@ -247,7 +247,8 @@ bool pm_system_suspend(int32_t ticks)
 
 #if defined(CONFIG_PM_DEVICE) && DT_PM_DEVICE_NEEDED
 	/* Wake up sequence starts here */
-	if (atomic_add(&_cpus_active, 1) == 0) {
+	if ((atomic_add(&_cpus_active, 1) == 0) &&
+			z_cpus_pm_state[id].pm_device_enabled) {
 		pm_resume_devices();
 	}
 #endif
