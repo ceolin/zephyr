@@ -4,6 +4,7 @@ type: qemu
 simulation: qemu
 arch: xtensa
 toolchain:
+  - zephyr
   - xtools
 testing:
   ignore_tags:
