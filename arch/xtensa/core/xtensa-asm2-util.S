@@ -153,8 +153,8 @@ _restore_context:
 
 	l32i a0, a1, ___xtensa_irq_bsa_t_pc_OFFSET
 	wsr a0, ZSR_EPC
-	l32i a0, a1, ___xtensa_irq_bsa_t_ps_OFFSET
-	wsr a0, ZSR_EPS
+	l32i a2, a1, ___xtensa_irq_bsa_t_ps_OFFSET
+	wsr a2, ZSR_EPS
 
 #if XCHAL_HAVE_FP && defined(CONFIG_CPU_HAS_FPU) && defined(CONFIG_FPU_SHARING)
 	FPU_REG_RESTORE
@@ -174,10 +174,19 @@ _restore_context:
 	l32i a0, a1, ___xtensa_irq_bsa_t_scompare1_OFFSET
 	wsr a0, SCOMPARE1
 #endif
-#if XCHAL_HAVE_THREADPTR && \
-	(defined(CONFIG_USERSPACE) || defined(CONFIG_THREAD_LOCAL_STORAGE))
+#if defined(CONFIG_USERSPACE) || defined(CONFIG_THREAD_LOCAL_STORAGE)
 	l32i a0, a1, ___xtensa_irq_bsa_t_threadptr_OFFSET
 	wur a0, THREADPTR
+
+#endif
+#if defined(CONFIG_USERSPACE) && defined(CONFIG_THREAD_LOCAL_STORAGE)
+	beqi a0, 0, _no_threadptr_in_restore
+	movi a3, is_user_mode@tpoff
+	add a0, a3, a0
+	movi a3,  0x000000C0
+	and a3, a2, a3
+	s32i a3, a0, 0
+_no_threadptr_in_restore:
 #endif
 	rsync
 

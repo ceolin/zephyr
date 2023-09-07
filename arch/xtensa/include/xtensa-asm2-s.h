@@ -410,7 +410,18 @@ _xstack_returned_\@:
 	l32i a2, a1, 0
 	l32i a2, a2, ___xtensa_irq_bsa_t_scratch_OFFSET
 
-#if XCHAL_HAVE_THREADPTR && defined(CONFIG_USERSPACE)
+#if defined(CONFIG_THREAD_LOCAL_STORAGE) && defined(CONFIG_USERSPACE)
+	/* When thread local storage is enabled in userspace, we
+	 * need to clear up is_user_mode variable.
+	 */
+	rur.THREADPTR a3
+	beqi a3, 0, _no_threadptr_isr
+	movi a0, is_user_mode@tpoff
+	add a0, a3, a0
+	movi a3, 0
+	s32i a3, a0, 0
+_no_threadptr_isr:
+#elif defined(CONFIG_THREAD_LOCAL_STORAGE) || defined(CONFIG_USERSPACE)
 	/* Clear up the threadptr because it is used
 	 * to check if a thread is runnig on user mode. Since
 	 * we are in a interruption we don't want the system
@@ -418,7 +429,7 @@ _xstack_returned_\@:
 	 */
 	movi.n a0, 0
 	wur.THREADPTR a0
-#endif /* XCHAL_HAVE_THREADPTR && CONFIG_USERSPACE */
+#endif /* CONFIG_THREAD_LOCAL_STORAGE && CONFIG_USERSPACE */
 
 	/* There's a gotcha with level 1 handlers: the INTLEVEL field
 	 * gets left at zero and not set like high priority interrupts
