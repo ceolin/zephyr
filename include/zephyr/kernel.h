@@ -577,7 +577,7 @@ __syscall void k_wakeup(k_tid_t thread);
 __attribute_const__
 __syscall k_tid_t z_current_get(void);
 
-#ifdef CONFIG_THREAD_LOCAL_STORAGE
+#if defined(CONFIG_THREAD_LOCAL_STORAGE) && !defined(CONFIG_XTENSA)
 /* Thread-local cache of current thread ID, set in z_thread_entry() */
 extern __thread k_tid_t z_tls_current;
 #endif
@@ -591,7 +591,7 @@ extern __thread k_tid_t z_tls_current;
 __attribute_const__
 static inline k_tid_t k_current_get(void)
 {
-#ifdef CONFIG_THREAD_LOCAL_STORAGE
+#if defined(CONFIG_THREAD_LOCAL_STORAGE) && !defined(CONFIG_XTENSA)
 	return z_tls_current;
 #else
 	return z_current_get();
