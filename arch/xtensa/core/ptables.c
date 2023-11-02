@@ -49,6 +49,15 @@
  */
 #define XTENSA_L2_PAGE_TABLE_SIZE (XTENSA_L2_PAGE_TABLE_ENTRIES * sizeof(uint32_t))
 
+/* PTE attributes for entries in the L1 page table.  Should never be
+ * writable, may be cached in non-SMP contexts only
+ */
+#if CONFIG_MP_MAX_NUM_CPUS == 1
+#define PAGE_TABLE_ATTR Z_XTENSA_MMU_CACHED_WB
+#else
+#define PAGE_TABLE_ATTR 0
+#endif
+
 LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
 
 BUILD_ASSERT(CONFIG_MMU_PAGE_SIZE == 0x1000,
@@ -239,7 +248,7 @@ static inline uint32_t *alloc_l2_table(void)
  * @param[in] dtlb_inv True if to invalidate auto-fill data TLBs.
  * @param[in] cache_inv True if to invalidate cache to page tables.
  */
-static ALWAYS_INLINE void switch_page_tables(uint32_t *ptables, bool dtlb_inv, bool cache_inv)
+static ALWAYS_INLINE void switch_page_tables(uint32_t *ptables, bool dtlb_inv, bool cache_inv, uint8_t asid)
 {
 	if (cache_inv) {
 		sys_cache_data_flush_and_invd_all();
@@ -261,6 +270,8 @@ static ALWAYS_INLINE void switch_page_tables(uint32_t *ptables, bool dtlb_inv, b
 		 */
 		xtensa_tlb_autorefill_invalidate();
 	}
+
+	xtensa_set_paging(asid, ptables);
 }
 
 static void map_memory_range(const uint32_t start, const uint32_t end,
@@ -273,7 +284,7 @@ static void map_memory_range(const uint32_t start, const uint32_t end,
 					    shared ? Z_XTENSA_SHARED_RING : Z_XTENSA_KERNEL_RING,
 					    attrs);
 		uint32_t l2_pos = Z_XTENSA_L2_POS(page);
-		uint32_t l1_pos = page >> 22;
+		uint32_t l1_pos = Z_XTENSA_L1_POS(page);
 
 		if (is_pte_illegal(z_xtensa_kernel_ptables[l1_pos])) {
 			table  = alloc_l2_table();
@@ -285,7 +296,7 @@ static void map_memory_range(const uint32_t start, const uint32_t end,
 
 			z_xtensa_kernel_ptables[l1_pos] =
 				Z_XTENSA_PTE((uint32_t)table, Z_XTENSA_KERNEL_RING,
-					     Z_XTENSA_MMU_CACHED_WT);
+					     Z_XTENSA_MMU_CACHED_WB);
 		}
 
 		table = (uint32_t *)(z_xtensa_kernel_ptables[l1_pos] & Z_XTENSA_PTE_PPN_MASK);
@@ -354,6 +365,17 @@ static void xtensa_init_page_tables(void)
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
+	/* Finally, the direct-mapped pages used in the page tables
+	 * must be fixed up to use the same cache attribute (but these
+	 * must be writable, obviously).  They shouldn't be left at
+	 * the default.
+	 */
+	map_memory_range((uint32_t) &l1_page_table[0],
+			 (uint32_t) &l1_page_table[CONFIG_XTENSA_MMU_NUM_L1_TABLES],
+			 PAGE_TABLE_ATTR | Z_XTENSA_MMU_W, false);
+	map_memory_range((uint32_t) &l2_page_tables[0],
+			 (uint32_t) &l2_page_tables[CONFIG_XTENSA_MMU_NUM_L2_TABLES],
+			 PAGE_TABLE_ATTR | Z_XTENSA_MMU_W, false);
 
 	sys_cache_data_flush_all();
 }
@@ -365,9 +387,6 @@ __weak void arch_xtensa_mmu_post_init(bool is_core0)
 
 void z_xtensa_mmu_init(void)
 {
-	volatile uint8_t entry;
-	uint32_t ps, vecbase;
-
 	if (_current_cpu->id == 0) {
 		/* This is normally done via arch_kernel_init() inside z_cstart().
 		 * However, before that is called, we go through the sys_init of
@@ -378,111 +397,7 @@ void z_xtensa_mmu_init(void)
 		xtensa_init_page_tables();
 	}
 
-	/* Set the page table location in the virtual address */
-	xtensa_ptevaddr_set((void *)Z_XTENSA_PTEVADDR);
-
-	/* Set rasid */
-	xtensa_rasid_asid_set(MMU_SHARED_ASID, Z_XTENSA_SHARED_RING);
-
-	/* Next step is to invalidate the tlb entry that contains the top level
-	 * page table. This way we don't cause a multi hit exception.
-	 */
-	xtensa_dtlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, 6));
-	xtensa_itlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, 6));
-
-	/* We are not using a flat table page, so we need to map
-	 * only the top level page table (which maps the page table itself).
-	 *
-	 * Lets use one of the wired entry, so we never have tlb miss for
-	 * the top level table.
-	 */
-	xtensa_dtlb_entry_write(Z_XTENSA_PTE((uint32_t)z_xtensa_kernel_ptables,
-					     Z_XTENSA_KERNEL_RING, Z_XTENSA_MMU_CACHED_WT),
-			Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, MMU_PTE_WAY));
-
-	/* Before invalidate the text region in the TLB entry 6, we need to
-	 * map the exception vector into one of the wired entries to avoid
-	 * a page miss for the exception.
-	 */
-	__asm__ volatile("rsr.vecbase %0" : "=r"(vecbase));
-
-	xtensa_itlb_entry_write_sync(
-		Z_XTENSA_PTE(vecbase, Z_XTENSA_KERNEL_RING,
-			Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WT),
-		Z_XTENSA_TLB_ENTRY(
-			Z_XTENSA_PTEVADDR + MB(4), 3));
-
-	xtensa_dtlb_entry_write_sync(
-		Z_XTENSA_PTE(vecbase, Z_XTENSA_KERNEL_RING,
-			Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WT),
-		Z_XTENSA_TLB_ENTRY(
-			Z_XTENSA_PTEVADDR + MB(4), 3));
-
-	/* Temporarily uses KernelExceptionVector for level 1 interrupts
-	 * handling. This is due to UserExceptionVector needing to jump to
-	 * _Level1Vector. The jump ('j') instruction offset is incorrect
-	 * when we move VECBASE below.
-	 */
-	__asm__ volatile("rsr.ps %0" : "=r"(ps));
-	ps &= ~PS_UM;
-	__asm__ volatile("wsr.ps %0; rsync" :: "a"(ps));
-
-	__asm__ volatile("wsr.vecbase %0; rsync\n\t"
-			:: "a"(Z_XTENSA_PTEVADDR + MB(4)));
-
-
-	/* Finally, lets invalidate all entries in way 6 as the page tables
-	 * should have already mapped the regions we care about for boot.
-	 */
-	for (entry = 0; entry < BIT(XCHAL_ITLB_ARF_ENTRIES_LOG2); entry++) {
-		__asm__ volatile("iitlb %[idx]\n\t"
-				 "isync"
-				 :: [idx] "a"((entry << 29) | 6));
-	}
-
-	for (entry = 0; entry < BIT(XCHAL_DTLB_ARF_ENTRIES_LOG2); entry++) {
-		__asm__ volatile("idtlb %[idx]\n\t"
-				 "dsync"
-				 :: [idx] "a"((entry << 29) | 6));
-	}
-
-	/* Map VECBASE to a fixed data TLB */
-	xtensa_dtlb_entry_write(
-			Z_XTENSA_PTE((uint32_t)vecbase,
-				     Z_XTENSA_KERNEL_RING, Z_XTENSA_MMU_CACHED_WB),
-			Z_XTENSA_TLB_ENTRY((uint32_t)vecbase, MMU_VECBASE_WAY));
-
-	/*
-	 * Pre-load TLB for vecbase so exception handling won't result
-	 * in TLB miss during boot, and that we can handle single
-	 * TLB misses.
-	 */
-	xtensa_itlb_entry_write_sync(
-		Z_XTENSA_PTE(vecbase, Z_XTENSA_KERNEL_RING,
-			Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WT),
-		Z_XTENSA_AUTOFILL_TLB_ENTRY(vecbase));
-
-	/* To finish, just restore vecbase and invalidate TLB entries
-	 * used to map the relocated vecbase.
-	 */
-	__asm__ volatile("wsr.vecbase %0; rsync\n\t"
-			:: "a"(vecbase));
-
-	/* Restore PS_UM so that level 1 interrupt handling will go to
-	 * UserExceptionVector.
-	 */
-	__asm__ volatile("rsr.ps %0" : "=r"(ps));
-	ps |= PS_UM;
-	__asm__ volatile("wsr.ps %0; rsync" :: "a"(ps));
-
-	xtensa_dtlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PTEVADDR + MB(4), 3));
-	xtensa_itlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PTEVADDR + MB(4), 3));
-
-	/*
-	 * Clear out THREADPTR as we use it to indicate
-	 * whether we are in user mode or not.
-	 */
-	XTENSA_WUR("THREADPTR", 0);
+	xtensa_init_paging(z_xtensa_kernel_ptables);
 
 	arch_xtensa_mmu_post_init(_current_cpu->id == 0);
 }
@@ -539,6 +454,7 @@ static bool l2_page_table_map(uint32_t *l1_table, void *vaddr, uintptr_t phys,
 				     flags);
 
 	sys_cache_data_flush_range((void *)&table[l2_pos], sizeof(table[0]));
+	xtensa_tlb_autorefill_invalidate();
 
 	return true;
 }
@@ -728,7 +644,7 @@ static bool l2_page_table_unmap(uint32_t *l1_table, void *vaddr)
 
 	/* Need to invalidate L2 page table as it is no longer valid. */
 	xtensa_dtlb_vaddr_invalidate((void *)l2_table);
-
+	xtensa_tlb_autorefill_invalidate();
 end:
 	return exec;
 }
@@ -872,7 +788,9 @@ void z_xtensa_mmu_tlb_shootdown(void)
 			 * indicated by the current thread are different
 			 * than the current mapped page table.
 			 */
-			switch_page_tables((uint32_t *)thread_ptables, true, true);
+			struct arch_mem_domain *domain =
+				&(thread->mem_domain_info.mem_domain->arch);
+			switch_page_tables((uint32_t *)thread_ptables, true, true, domain->asid);
 		}
 
 	}
@@ -935,7 +853,7 @@ static uint32_t *dup_table(uint32_t *source_table)
 		 * user thread manipulate it.
 		 */
 		dst_table[i] = Z_XTENSA_PTE((uint32_t)l2_table, Z_XTENSA_KERNEL_RING,
-					    Z_XTENSA_MMU_CACHED_WT);
+					    PAGE_TABLE_ATTR);
 
 		sys_cache_data_flush_range((void *)l2_table, XTENSA_L2_PAGE_TABLE_SIZE);
 	}
@@ -992,7 +910,6 @@ static int region_map_update(uint32_t *ptables, uintptr_t start,
 		uint32_t page = start + offset;
 		uint32_t l1_pos = page >> 22;
 		uint32_t l2_pos = Z_XTENSA_L2_POS(page);
-
 		/* Make sure we grab a fresh copy of L1 page table */
 		sys_cache_data_invd_range((void *)&ptables[l1_pos], sizeof(ptables[0]));
 
@@ -1004,11 +921,9 @@ static int region_map_update(uint32_t *ptables, uintptr_t start,
 		pte = Z_XTENSA_PTE_ATTR_SET(pte, flags);
 
 		l2_table[l2_pos] = pte;
-
 		sys_cache_data_flush_range((void *)&l2_table[l2_pos], sizeof(l2_table[0]));
 
-		xtensa_dtlb_vaddr_invalidate(
-			(void *)(pte & Z_XTENSA_PTE_PPN_MASK));
+		xtensa_dtlb_vaddr_invalidate((void *)page);
 	}
 
 	return ret;
@@ -1069,7 +984,6 @@ void xtensa_user_stack_perms(struct k_thread *thread)
 	(void)memset((void *)thread->stack_info.start,
 		     (IS_ENABLED(CONFIG_INIT_STACKS)) ? 0xAA : 0x00,
 		     thread->stack_info.size - thread->stack_info.delta);
-
 	update_region(thread_page_tables_get(thread),
 		      thread->stack_info.start, thread->stack_info.size,
 		      Z_XTENSA_USER_RING, Z_XTENSA_MMU_W | Z_XTENSA_MMU_CACHED_WB, 0);
@@ -1136,7 +1050,8 @@ int arch_mem_domain_thread_add(struct k_thread *thread)
 	 * the current thread running.
 	 */
 	if (thread == _current_cpu->current) {
-		switch_page_tables(thread->arch.ptables, true, true);
+		struct arch_mem_domain *arch = &(domain->arch);
+		switch_page_tables(thread->arch.ptables, true, true, arch->asid);
 	}
 
 #if CONFIG_MP_MAX_NUM_CPUS > 1
@@ -1254,12 +1169,8 @@ void z_xtensa_swap_update_page_tables(struct k_thread *incoming)
 	struct arch_mem_domain *domain =
 		&(incoming->mem_domain_info.mem_domain->arch);
 
-	/* Lets set the asid for the incoming thread */
-	if ((incoming->base.user_options & K_USER) != 0) {
-		xtensa_rasid_asid_set(domain->asid, Z_XTENSA_USER_RING);
-	}
-
-	switch_page_tables(ptables, true, false);
+	switch_page_tables(ptables, true, false, domain->asid);
+	/* xtensa_dtlb_autorefill_invalidate_sync(incoming->stack_info.start); */
 }
 
 #endif /* CONFIG_USERSPACE */

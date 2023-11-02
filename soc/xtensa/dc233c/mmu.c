@@ -47,7 +47,7 @@ void arch_xtensa_mmu_post_init(bool is_core0)
 	/* Invalidate any autorefill instr TLBs of VECBASE so we can map it
 	 * permanently below.
 	 */
-	xtensa_itlb_vaddr_invalidate((void *)vecbase);
+	/* xtensa_itlb_vaddr_invalidate((void *)vecbase); */
 
 	/* Map VECBASE permanently in instr TLB way 4 so we will always have
 	 * access to exception handlers. Each way 4 TLB covers 1MB (unless
@@ -59,9 +59,9 @@ void arch_xtensa_mmu_post_init(bool is_core0)
 	 * we want to keep page 0 (0x00000000) unmapped to catch null pointer
 	 * de-references.
 	 */
-	vecbase = ROUND_DOWN(vecbase, MB(1));
-	xtensa_itlb_entry_write_sync(
-		Z_XTENSA_PTE(vecbase, Z_XTENSA_SHARED_RING,
-			     Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WT),
-		Z_XTENSA_TLB_ENTRY((uint32_t)vecbase, 4));
+	/* vecbase = ROUND_DOWN(vecbase, MB(1)); */
+	/* xtensa_itlb_entry_write_sync( */
+	/* 	Z_XTENSA_PTE(vecbase, Z_XTENSA_SHARED_RING, */
+	/* 		     Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WT), */
+	/* 	Z_XTENSA_TLB_ENTRY((uint32_t)vecbase, 4)); */
 }

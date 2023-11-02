@@ -507,6 +507,8 @@ _do_call_\@:
 	 * spills to the right place.
 	 */
 	beq a6, a1, _restore_\@
+
+#ifndef CONFIG_USERSPACE
 	l32i a1, a1, 0
 	l32i a0, a1, ___xtensa_irq_bsa_t_a0_OFFSET
 	addi a1, a1, ___xtensa_irq_bsa_t_SIZEOF
@@ -517,7 +519,6 @@ _do_call_\@:
 	SPILL_ALL_WINDOWS
 #endif
 
-#ifndef CONFIG_USERSPACE
 	/* Restore A1 stack pointer from "next" handle. */
 	mov a1, a6
 #else
@@ -539,6 +540,10 @@ _do_call_\@:
 	l32i a6, a6, ___cpu_t_current_OFFSET
 
 	call4 z_xtensa_swap_update_page_tables
+	l32i a1, a1, 0
+	l32i a0, a1, ___xtensa_irq_bsa_t_a0_OFFSET
+	addi a1, a1, ___xtensa_irq_bsa_t_SIZEOF
+	SPILL_ALL_WINDOWS
 
 	/* Moved stashed stack pointer to A1 to restore stack. */
 	mov a1, a2
@@ -584,29 +589,23 @@ _Level\LVL\()VectorHelper :
 _Level\LVL\()Vector:
 #endif
 #ifdef CONFIG_XTENSA_MMU
-	wsr.ZSR_MMU_0 a2
-	wsr.ZSR_MMU_1 a3
-	rsync
+	/* wsr.ZSR_MMU_0 a2 */
+	/* wsr.ZSR_MMU_1 a3 */
+	/* rsync */
 
-	/* Calculations below will clobber registers used.
-	 * So we make a copy of the stack pointer to avoid
-	 * changing it.
-	 */
-	mov a3, a1
+/* CALC_PTEVADDR_BASE a2 */
 
-	CALC_PTEVADDR_BASE a2
+/* Preload PTE entry page of current stack. */
+/* PRELOAD_PTEVADDR a3, a2 */
 
-	/* Preload PTE entry page of current stack. */
-	PRELOAD_PTEVADDR a3, a2
+/* Preload PTE entry page of new stack, where
+ * it will be used later (in EXCINT_HANDLER above).
+ */
+/* rsr.ZSR_CPU a3 */
+/* PRELOAD_PTEVADDR a3, a2 */
 
-	/* Preload PTE entry page of new stack, where
-	 * it will be used later (in EXCINT_HANDLER above).
-	 */
-	rsr.ZSR_CPU a3
-	PRELOAD_PTEVADDR a3, a2
-
-	rsr.ZSR_MMU_1 a3
-	rsr.ZSR_MMU_0 a2
+	/* rsr.ZSR_MMU_1 a3 */
+	/* rsr.ZSR_MMU_0 a2 */
 #endif /* CONFIG_XTENSA_MMU */
 	addi a1, a1, -___xtensa_irq_bsa_t_SIZEOF
 	s32i a0, a1, ___xtensa_irq_bsa_t_a0_OFFSET
