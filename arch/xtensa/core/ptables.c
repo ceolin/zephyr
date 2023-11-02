@@ -363,19 +363,18 @@ __weak void arch_xtensa_mmu_post_init(bool is_core0)
 	ARG_UNUSED(is_core0);
 }
 
-static void xtensa_mmu_init(bool is_core0)
+void z_xtensa_mmu_init(void)
 {
 	volatile uint8_t entry;
 	uint32_t ps, vecbase;
 
-	if (is_core0) {
+	if (_current_cpu->id == 0) {
 		/* This is normally done via arch_kernel_init() inside z_cstart().
 		 * However, before that is called, we go through the sys_init of
 		 * INIT_LEVEL_EARLY, which is going to result in TLB misses.
 		 * So setup whatever necessary so the exception handler can work
 		 * properly.
 		 */
-		z_xtensa_kernel_init();
 		xtensa_init_page_tables();
 	}
 
@@ -485,17 +484,7 @@ static void xtensa_mmu_init(bool is_core0)
 	 */
 	XTENSA_WUR("THREADPTR", 0);
 
-	arch_xtensa_mmu_post_init(is_core0);
-}
-
-void z_xtensa_mmu_init(void)
-{
-	xtensa_mmu_init(true);
-}
-
-void z_xtensa_mmu_smp_init(void)
-{
-	xtensa_mmu_init(false);
+	arch_xtensa_mmu_post_init(_current_cpu->id == 0);
 }
 
 #ifdef CONFIG_ARCH_HAS_RESERVED_PAGE_FRAMES
