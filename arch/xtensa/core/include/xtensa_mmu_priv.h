@@ -421,4 +421,10 @@ static inline void xtensa_dtlb_vaddr_invalidate(void *vaddr)
 	}
 }
 
+void xtensa_init_paging(uint32_t *l1_page);
+
+void xtensa_set_paging(uint32_t asid, uint32_t *l1_page);
+
+void xtensa_invalidate_refill_tlb(void);
+
 #endif /* ZEPHYR_ARCH_XTENSA_XTENSA_MMU_PRIV_H_ */
