@@ -49,6 +49,15 @@
  */
 #define XTENSA_L2_PAGE_TABLE_SIZE (XTENSA_L2_PAGE_TABLE_ENTRIES * sizeof(uint32_t))
 
+/* PTE attributes for entries in the L1 page table.  Should never be
+ * writable, may be cached in non-SMP contexts only
+ */
+#if CONFIG_MP_MAX_NUM_CPUS == 1
+#define PAGE_TABLE_ATTR Z_XTENSA_MMU_CACHED_WB
+#else
+#define PAGE_TABLE_ATTR 0
+#endif
+
 LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
 
 BUILD_ASSERT(CONFIG_MMU_PAGE_SIZE == 0x1000,
@@ -239,8 +248,10 @@ static inline uint32_t *alloc_l2_table(void)
  * @param[in] dtlb_inv True if to invalidate auto-fill data TLBs.
  * @param[in] cache_inv True if to invalidate cache to page tables.
  */
-static ALWAYS_INLINE void switch_page_tables(uint32_t *ptables, bool dtlb_inv, bool cache_inv)
+static ALWAYS_INLINE void switch_page_tables(uint32_t *ptables, bool dtlb_inv, bool cache_inv, uint8_t asid)
 {
+	xtensa_set_paging(asid, ptables);
+	return;
 	if (cache_inv) {
 		sys_cache_data_flush_and_invd_all();
 	}
@@ -252,14 +263,14 @@ static ALWAYS_INLINE void switch_page_tables(uint32_t *ptables, bool dtlb_inv, b
 	 * from tampering with it.
 	 */
 	xtensa_dtlb_entry_write_sync(
-		Z_XTENSA_PTE((uint32_t)ptables, Z_XTENSA_KERNEL_RING, Z_XTENSA_MMU_CACHED_WT),
+		Z_XTENSA_PTE((uint32_t)ptables, Z_XTENSA_KERNEL_RING, 0),
 		Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, MMU_PTE_WAY));
 
 	if (dtlb_inv) {
 		/* Since L2 page tables are auto-refilled,
 		 * invalidate all of them to flush the old entries out.
 		 */
-		xtensa_dtlb_autorefill_invalidate_all_sync();
+		xtensa_invalidate_refill_tlb();
 	}
 }
 
@@ -285,7 +296,7 @@ static void map_memory_range(const uint32_t start, const uint32_t end,
 
 			z_xtensa_kernel_ptables[l1_pos] =
 				Z_XTENSA_PTE((uint32_t)table, Z_XTENSA_KERNEL_RING,
-					     Z_XTENSA_MMU_CACHED_WT);
+					     PAGE_TABLE_ATTR);
 		}
 
 		table = (uint32_t *)(z_xtensa_kernel_ptables[l1_pos] & Z_XTENSA_PTE_PPN_MASK);
@@ -354,6 +365,17 @@ static void xtensa_init_page_tables(void)
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
+	/* Finally, the direct-mapped pages used in the page tables
+	 * must be fixed up to use the same cache attribute (but these
+	 * must be writable, obviously).  They shouldn't be left at
+	 * the default.
+	 */
+	map_memory_range((uint32_t) &l1_page_table[0],
+			 (uint32_t) &l1_page_table[CONFIG_XTENSA_MMU_NUM_L1_TABLES - 1][XTENSA_L1_PAGE_TABLE_ENTRIES],
+			 PAGE_TABLE_ATTR | Z_XTENSA_MMU_W, false);
+	map_memory_range((uint32_t) &l2_page_tables[0],
+			 (uint32_t) &l2_page_tables[CONFIG_XTENSA_MMU_NUM_L2_TABLES],
+			 PAGE_TABLE_ATTR | Z_XTENSA_MMU_W, false);
 
 	sys_cache_data_flush_all();
 }
@@ -421,8 +443,7 @@ static bool l2_page_table_map(uint32_t *l1_table, void *vaddr, uintptr_t phys,
 
 		init_page_table(table, XTENSA_L2_PAGE_TABLE_ENTRIES);
 
-		l1_table[l1_pos] = Z_XTENSA_PTE((uint32_t)table, Z_XTENSA_KERNEL_RING,
-						Z_XTENSA_MMU_CACHED_WT);
+		l1_table[l1_pos] = Z_XTENSA_PTE((uint32_t)table, Z_XTENSA_KERNEL_RING, 0);
 
 		sys_cache_data_flush_range((void *)&l1_table[l1_pos], sizeof(l1_table[0]));
 	}
@@ -461,7 +482,7 @@ static inline void __arch_mem_map(void *va, uintptr_t pa, uint32_t xtensa_flags,
 		}
 
 		flags_uc = (xtensa_flags & ~Z_XTENSA_PTE_ATTR_CACHED_MASK);
-		flags = flags_uc | Z_XTENSA_MMU_CACHED_WB;
+		flags = flags_uc;
 	} else {
 		vaddr = va;
 		paddr = pa;
@@ -510,6 +531,7 @@ static inline void __arch_mem_map(void *va, uintptr_t pa, uint32_t xtensa_flags,
 	if ((xtensa_flags & Z_XTENSA_MMU_X) == Z_XTENSA_MMU_X) {
 		xtensa_itlb_vaddr_invalidate(vaddr);
 	}
+
 	xtensa_dtlb_vaddr_invalidate(vaddr);
 
 	if (IS_ENABLED(CONFIG_XTENSA_MMU_DOUBLE_MAP)) {
@@ -765,7 +787,9 @@ void z_xtensa_mmu_tlb_shootdown(void)
 			 * indicated by the current thread are different
 			 * than the current mapped page table.
 			 */
-			switch_page_tables((uint32_t *)thread_ptables, true, true);
+			struct arch_mem_domain *domain =
+				&(thread->mem_domain_info.mem_domain->arch);
+			switch_page_tables((uint32_t *)thread_ptables, true, true, domain->asid);
 		}
 
 	}
@@ -777,7 +801,7 @@ void z_xtensa_mmu_tlb_shootdown(void)
 	 * L1 will be refreshed during context switch so no need
 	 * to do anything here.
 	 */
-	xtensa_dtlb_autorefill_invalidate_all_sync();
+	xtensa_invalidate_refill_tlb();
 
 	arch_irq_unlock(key);
 }
@@ -828,7 +852,7 @@ static uint32_t *dup_table(uint32_t *source_table)
 		 * user thread manipulate it.
 		 */
 		dst_table[i] = Z_XTENSA_PTE((uint32_t)l2_table, Z_XTENSA_KERNEL_RING,
-					    Z_XTENSA_MMU_CACHED_WT);
+					    0);
 
 		sys_cache_data_flush_range((void *)l2_table, XTENSA_L2_PAGE_TABLE_SIZE);
 	}
@@ -900,8 +924,7 @@ static int region_map_update(uint32_t *ptables, uintptr_t start,
 
 		sys_cache_data_flush_range((void *)&l2_table[l2_pos], sizeof(l2_table[0]));
 
-		xtensa_dtlb_vaddr_invalidate(
-			(void *)(pte & Z_XTENSA_PTE_PPN_MASK));
+		xtensa_dtlb_vaddr_invalidate((void *)page);
 	}
 
 	return ret;
@@ -929,7 +952,7 @@ static inline int update_region(uint32_t *ptables, uintptr_t start,
 	}
 
 	new_flags_uc = (flags & ~Z_XTENSA_PTE_ATTR_CACHED_MASK);
-	new_flags = new_flags_uc | Z_XTENSA_MMU_CACHED_WB;
+	new_flags = new_flags_uc;
 
 	ret = region_map_update(ptables, va, size, ring, new_flags);
 
@@ -962,10 +985,9 @@ void xtensa_user_stack_perms(struct k_thread *thread)
 	(void)memset((void *)thread->stack_info.start,
 		     (IS_ENABLED(CONFIG_INIT_STACKS)) ? 0xAA : 0x00,
 		     thread->stack_info.size - thread->stack_info.delta);
-
 	update_region(thread_page_tables_get(thread),
 		      thread->stack_info.start, thread->stack_info.size,
-		      Z_XTENSA_USER_RING, Z_XTENSA_MMU_W | Z_XTENSA_MMU_CACHED_WB, 0);
+		      Z_XTENSA_USER_RING, Z_XTENSA_MMU_W, 0);
 }
 
 int arch_mem_domain_max_partitions_get(void)
@@ -1009,13 +1031,13 @@ int arch_mem_domain_thread_add(struct k_thread *thread)
 	is_migration = (old_ptables != NULL) && is_user;
 
 	if (is_migration) {
-		/* Give access to the thread's stack in its new
+		/* give access to the thread's stack in its new
 		 * memory domain if it is migrating.
 		 */
 		update_region(thread_page_tables_get(thread),
 			      thread->stack_info.start, thread->stack_info.size,
 			      Z_XTENSA_USER_RING,
-			      Z_XTENSA_MMU_W | Z_XTENSA_MMU_CACHED_WB,
+			      Z_XTENSA_MMU_W,
 			      OPTION_NO_TLB_IPI);
 		/* and reset thread's stack permission in
 		 * the old page tables.
@@ -1029,7 +1051,8 @@ int arch_mem_domain_thread_add(struct k_thread *thread)
 	 * the current thread running.
 	 */
 	if (thread == _current_cpu->current) {
-		switch_page_tables(thread->arch.ptables, true, true);
+		struct arch_mem_domain *arch = &(domain->arch);
+		switch_page_tables(thread->arch.ptables, true, true, arch->asid);
 	}
 
 #if CONFIG_MP_MAX_NUM_CPUS > 1
@@ -1072,9 +1095,8 @@ int arch_mem_domain_thread_remove(struct k_thread *thread)
 	 * adding it back to another. So there is no need to send TLB IPI
 	 * at this point.
 	 */
-	return reset_region(domain->arch.ptables,
-			    thread->stack_info.start,
-			    thread->stack_info.size, OPTION_NO_TLB_IPI);
+	return reset_region(domain->arch.ptables, thread->stack_info.start,
+				    thread->stack_info.size, OPTION_NO_TLB_IPI);
 }
 
 static bool page_validate(uint32_t *ptables, uint32_t page, uint8_t ring, bool write)
@@ -1147,12 +1169,7 @@ void z_xtensa_swap_update_page_tables(struct k_thread *incoming)
 	struct arch_mem_domain *domain =
 		&(incoming->mem_domain_info.mem_domain->arch);
 
-	/* Lets set the asid for the incoming thread */
-	if ((incoming->base.user_options & K_USER) != 0) {
-		xtensa_rasid_asid_set(domain->asid, Z_XTENSA_USER_RING);
-	}
-
-	switch_page_tables(ptables, true, false);
+	switch_page_tables(ptables, true, false, domain->asid);
 }
 
 #endif /* CONFIG_USERSPACE */

@@ -548,7 +548,6 @@ FUNC_NORETURN void arch_user_mode_enter(k_thread_entry_t user_entry,
 	stack_end = Z_STACK_PTR_ALIGN(current->stack_info.start +
 				      current->stack_info.size -
 				      current->stack_info.delta);
-
 #ifdef CONFIG_THREAD_LOCAL_STORAGE
 	is_user_mode = 1;
 #endif

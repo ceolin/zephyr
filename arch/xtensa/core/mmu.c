@@ -1,138 +1,278 @@
-/*
- * Copyright (c) 2023 Intel Corporation
+/* Copyright 2023 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-
+#include <stdint.h>
+#include <stdbool.h>
 #include <zephyr/kernel.h>
-#include <zephyr/arch/xtensa/xtensa_mmu.h>
-#include <xtensa/corebits.h>
-#include <xtensa_mmu_priv.h>
+#include <xtensa/config/core-isa.h>
 
-/* This ASID is shared between all domains and kernel. */
-#define MMU_SHARED_ASID 255
+#define ASID_INVALID 0
 
-/* Fixed data TLB way to map the page table */
-#define MMU_PTE_WAY 7
+#define TLB_PTES_WAY    7 /* where to pin the page table mapping */
+#define TLB_VECBASE_WAY 8 /* where to pin the vecbase mapping */
 
-/* Fixed data TLB way to map VECBASE */
-#define MMU_VECBASE_WAY 8
+/* expensive check, for debugging only */
+/* #define VALIDATE_PTE_ATTRS */
 
+struct tlb_regs {
+	uint32_t rasid;
+	uint32_t ptevaddr;
+	uint32_t ptepin_as;
+	uint32_t ptepin_at;
+	uint32_t vecpin_as;
+	uint32_t vecpin_at;
+};
+
+/* Word index (not byte offset) into L1 page table */
+static uint32_t l1_idx(uint32_t addr)
+{
+	return addr >> 22;
+}
+
+/* Virtual address of the PTE mapping the specified address */
+static uint32_t pte_virt(uint32_t addr, struct tlb_regs *regs)
+{
+	return 4 * (addr >> 12) + regs->ptevaddr;
+}
+
+static bool pte_valid(uint32_t pte)
+{
+	return ((pte & 0xf) < 12);
+}
+
+static uint32_t pte_ring(uint32_t pte)
+{
+	return (pte >> 4) & 3;
+}
+
+static uint32_t pte_addr(uint32_t pte)
+{
+	return pte & ~0xfff;
+}
+
+static uint32_t lookup_pte(uint32_t *l1, uint32_t addr)
+{
+	uint32_t pte1 = l1[l1_idx(addr)];
+	uint32_t *l2 = (void *) (pte1 & ~0xfff);
+
+	return pte_valid(pte1) ? l2[(addr >> 12) & 0x3ff] : 0xf;
+}
+
+/* Walks a page table, ensuring that:
+ *
+ * 1. L1 page table entries (entries used in hardware refill) are
+ *    mapped at ring 0 and either invalid or read-only
+ *
+ * 2. Those hardware addresses mapped by page table pages are also
+ *    direct-mapped at their hardware address with ring 0 permissions.
+ *
+ * 3. The cacheability attribute of the two mappings must be
+ *    identical, and in multiprocessor environments they must be
+ *    uncached.
+ */
+void xtensa_page_table_validate(uint32_t *l1)
+{
+	for (int i = 0; i < 1024; i++) {
+		uint32_t pte = l1[i];
+
+		if (!pte_valid(pte)) {
+			continue;
+		}
+
+		__ASSERT_NO_MSG(pte_ring(pte) == 0);
+
+		uint32_t phys = lookup_pte(l1, pte_addr(pte));
+
+		__ASSERT_NO_MSG(pte_valid(phys));
+		__ASSERT_NO_MSG((phys >> 12) == (pte >> 12)); /* map to same page */
+		__ASSERT_NO_MSG(pte_ring(phys) == 0);
+		__ASSERT_NO_MSG((pte & 0xc) == (phys & 0xc)); /* cache bits identical */
+		if (CONFIG_MP_MAX_NUM_CPUS > 1) {
+			__ASSERT_NO_MSG((pte & 0xf) == 0);
+		}
+	}
+}
+
+static void compute_regs(uint32_t user_asid, uint32_t *l1_page, struct tlb_regs *regs)
+{
+	uint32_t vecbase = XTENSA_RSR("VECBASE");
+
+	__ASSERT_NO_MSG((((uint32_t) l1_page) & 0xfff) == 0);
+	__ASSERT_NO_MSG(user_asid != 1 && user_asid < 253);
+
+	/* We don't use ring 1, ring 0 ASID must be 1 */
+	regs->rasid = (255 << 24) | (user_asid << 16) | 0x000201;
+
+	/* Derive PTEVADDR from ASID so each domain gets its own PTE area */
+	regs->ptevaddr = CONFIG_XTENSA_MMU_PTEVADDR + user_asid * 0x400000;
+
+	/* The ptables code doesn't add the mapping for the l1 page itself */
+	l1_page[l1_idx(regs->ptevaddr)] = (uint32_t) l1_page;
+
+	regs->ptepin_at = (uint32_t) l1_page;
+	regs->ptepin_as = pte_virt(regs->ptevaddr, regs) | TLB_PTES_WAY;
+
+	/* Pin mapping for refilling the vector address into the ITLB
+	 * (for handling TLB miss exceptions). Note: this is NOT an
+	 * instruction TLB entry for the vector code itself, it's a
+	 * DATA TLB entry for the page containing the vector mapping
+	 * so the refill on instruction fetch can find it. The
+	 * hardware doesn't have a 4k pinnable instruction TLB way,
+	 * frustratingly.
+	 */
+	uint32_t vb_pte = l1_page[l1_idx(vecbase)];
+
+	__ASSERT_NO_MSG(pte_valid(vb_pte));
+	regs->vecpin_at = vb_pte;
+	regs->vecpin_as = pte_virt(vecbase, regs) | TLB_VECBASE_WAY;
+}
+
+/* Swtich to a new page table.  There are four items we have to set in
+ * the hardware: the PTE virtual address, the ring/ASID mapping
+ * register, and two pinned entries in the data TLB handling refills
+ * for the page tables and the vector handlers.
+ *
+ * These can be done in any order, provided that we ensure that no
+ * memory access which cause a TLB miss can happen during the process.
+ * This means that we must work entirely within registers in a single
+ * asm block.  Also note that instruction fetches are memory accesses
+ * too, which means we cannot cross a page boundary which might reach
+ * a new page not in the TLB (a single jump to an aligned address that
+ * holds our five instructions is sufficient to guarantee that: I
+ * couldn't think of a way to do the alignment statically that also
+ * interoperated well with inline assembly).
+ */
+void xtensa_set_paging(uint32_t user_asid, uint32_t *l1_page)
+{
+	/* Optimization note: the registers computed here are pure
+	 * functions of the two arguments.  With a minor API tweak,
+	 * they could be cached in e.g. a thread struct instead of
+	 * being recomputed.  This is called on context switch paths
+	 * and is performance-sensitive.
+	 */
+	struct tlb_regs regs;
+
+	compute_regs(user_asid, l1_page, &regs);
+
+	__asm__ volatile("   j 1f             \n"
+			 ".align 16           \n" /* enough for 5 insns */
+			 "1:                  \n"
+			 "   wsr %0, PTEVADDR \n"
+			 "   wsr %1, RASID    \n"
+			 "   wdtlb %2, %3     \n"
+			 "   wdtlb %4, %5     \n"
+			 "   isync"
+			 :: "r"(regs.ptevaddr), "r"(regs.rasid),
+			    "r"(regs.ptepin_at), "r"(regs.ptepin_as),
+			    "r"(regs.vecpin_at), "r"(regs.vecpin_as));
+}
+
+/* This is effectively the same algorithm from xtensa_set_paging(),
+ * but it also disables the hardware-initialized 512M TLB entries in
+ * way 6 (because the hardware disallows duplicate TLB mappings).  For
+ * instruction fetches this produces a critical ordering constraint:
+ * the instruction following the invalidation of ITLB entry mapping
+ * the current PC will by definition create a refill condition, which
+ * will (because the data TLB was invalidated) cause a refill
+ * exception.  Therefore this step must be the very last one, once
+ * everything else is setup up and working, which includes the
+ * invalidation of the virtual PTEVADDR area so that the resulting
+ * refill can complete.
+ *
+ * Note that we can't guarantee that the compiler won't insert a data
+ * fetch from our stack memory after exit from the asm block (while it
+ * might be double-mapped), so we invalidate that data TLB inside the
+ * asm for correctness.  The other 13 entries get invalidated in a C
+ * loop at the end.
+ */
 void xtensa_init_paging(uint32_t *l1_page)
 {
-	volatile uint8_t entry;
-	uint32_t ps, vecbase;
+	extern char z_xt_init_pc; /* defined in asm below */
+	struct tlb_regs regs;
 
-	/* Set the page table location in the virtual address */
-	xtensa_ptevaddr_set((void *)Z_XTENSA_PTEVADDR);
-
-	/* Set rasid */
-	xtensa_rasid_asid_set(MMU_SHARED_ASID, Z_XTENSA_SHARED_RING);
-
-	/* Next step is to invalidate the tlb entry that contains the top level
-	 * page table. This way we don't cause a multi hit exception.
+#if CONFIG_MP_MAX_NUM_CPUS > 1
+	/* The incoherent cache can get into terrible trouble if it's
+	 * allowed to cache PTEs differently across CPUs.  We require
+	 * that all page tables supplied by the OS have exclusively
+	 * uncached mappings for page data, but can't do anything
+	 * about earlier code/firmware.  Dump the cache to be safe.
 	 */
-	xtensa_dtlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, 6));
-	xtensa_itlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, 6));
+	sys_cache_data_flush_and_invd_all();
+#endif
 
-	/* We are not using a flat table page, so we need to map
-	 * only the top level page table (which maps the page table itself).
-	 *
-	 * Lets use one of the wired entry, so we never have tlb miss for
-	 * the top level table.
+	compute_regs(ASID_INVALID, l1_page, &regs);
+
+	uint32_t idtlb_pte = (regs.ptevaddr & 0xe0000000) | XCHAL_SPANNING_WAY;
+	uint32_t idtlb_stk = (((uint32_t) &regs) & ~0xfff) | XCHAL_SPANNING_WAY;
+	uint32_t iitlb_pc  = (((uint32_t) &z_xt_init_pc) & ~0xfff) | XCHAL_SPANNING_WAY;
+
+	/* Note: the jump is mostly pedantry, as it's almost
+	 * inconceivable that a hardware memory region at boot is
+	 * going to cross a 512M page boundary.  But we need the entry
+	 * symbol to get the address above, so the jump is here for
+	 * symmetry with the set_paging() code.
 	 */
-	xtensa_dtlb_entry_write(Z_XTENSA_PTE((uint32_t)l1_page,
-					     Z_XTENSA_KERNEL_RING, Z_XTENSA_MMU_CACHED_WT),
-			Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, MMU_PTE_WAY));
+	__asm__ volatile("   j z_xt_init_pc   \n"
+			 ".align 32           \n" /* room for 10 insns */
+			 ".globl z_xt_init_pc \n"
+			 "z_xt_init_pc:       \n"
+			 "   wsr %0, PTEVADDR \n"
+			 "   wsr %1, RASID    \n"
+			 "   wdtlb %2, %3     \n"
+			 "   wdtlb %4, %5     \n"
+			 "   idtlb %6         \n" /* invalidate pte */
+			 "   idtlb %7         \n" /* invalidate stk */
+			 "   isync            \n"
+			 "   iitlb %8         \n" /* invalidate pc */
+			 "   isync            \n" /* <--- traps a ITLB miss */
+			 :: "r"(regs.ptevaddr), "r"(regs.rasid),
+			    "r"(regs.ptepin_at), "r"(regs.ptepin_as),
+			    "r"(regs.vecpin_at), "r"(regs.vecpin_as),
+			    "r"(idtlb_pte), "r"(idtlb_stk), "r"(iitlb_pc));
 
-	/* Before invalidate the text region in the TLB entry 6, we need to
-	 * map the exception vector into one of the wired entries to avoid
-	 * a page miss for the exception.
+	/* Invalidate the remaining (unused by this function)
+	 * initialization entries. Now we're flying free with our own
+	 * page table.
 	 */
-	__asm__ volatile("rsr.vecbase %0" : "=r"(vecbase));
+	for (int i = 0; i < 8; i++) {
+		uint32_t ixtlb = (i * 0x2000000000) | XCHAL_SPANNING_WAY;
 
-	xtensa_itlb_entry_write_sync(
-		Z_XTENSA_PTE(vecbase, Z_XTENSA_KERNEL_RING,
-			Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WT),
-		Z_XTENSA_TLB_ENTRY(
-			Z_XTENSA_PTEVADDR + MB(4), 3));
-
-	xtensa_dtlb_entry_write_sync(
-		Z_XTENSA_PTE(vecbase, Z_XTENSA_KERNEL_RING,
-			Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WT),
-		Z_XTENSA_TLB_ENTRY(
-			Z_XTENSA_PTEVADDR + MB(4), 3));
-
-	/* Temporarily uses KernelExceptionVector for level 1 interrupts
-	 * handling. This is due to UserExceptionVector needing to jump to
-	 * _Level1Vector. The jump ('j') instruction offset is incorrect
-	 * when we move VECBASE below.
-	 */
-	__asm__ volatile("rsr.ps %0" : "=r"(ps));
-	ps &= ~PS_UM;
-	__asm__ volatile("wsr.ps %0; rsync" :: "a"(ps));
-
-	__asm__ volatile("wsr.vecbase %0; rsync\n\t"
-			:: "a"(Z_XTENSA_PTEVADDR + MB(4)));
-
-
-	/* Finally, lets invalidate all entries in way 6 as the page tables
-	 * should have already mapped the regions we care about for boot.
-	 */
-	for (entry = 0; entry < BIT(XCHAL_ITLB_ARF_ENTRIES_LOG2); entry++) {
-		__asm__ volatile("iitlb %[idx]\n\t"
-				 "isync"
-				 :: [idx] "a"((entry << 29) | 6));
+		if (ixtlb != iitlb_pc) {
+			__asm__ volatile("iitlb %0" :: "r"(ixtlb));
+		}
+		if (ixtlb != idtlb_stk && ixtlb != idtlb_pte) {
+			__asm__ volatile("idtlb %0" :: "r"(ixtlb));
+		}
 	}
-
-	for (entry = 0; entry < BIT(XCHAL_DTLB_ARF_ENTRIES_LOG2); entry++) {
-		__asm__ volatile("idtlb %[idx]\n\t"
-				 "dsync"
-				 :: [idx] "a"((entry << 29) | 6));
-	}
-
-	/* Map VECBASE to a fixed data TLB */
-	xtensa_dtlb_entry_write(
-			Z_XTENSA_PTE((uint32_t)vecbase,
-				     Z_XTENSA_KERNEL_RING, Z_XTENSA_MMU_CACHED_WB),
-			Z_XTENSA_TLB_ENTRY((uint32_t)vecbase, MMU_VECBASE_WAY));
-
-	/*
-	 * Pre-load TLB for vecbase so exception handling won't result
-	 * in TLB miss during boot, and that we can handle single
-	 * TLB misses.
-	 */
-	xtensa_itlb_entry_write_sync(
-		Z_XTENSA_PTE(vecbase, Z_XTENSA_KERNEL_RING,
-			Z_XTENSA_MMU_X | Z_XTENSA_MMU_CACHED_WT),
-		Z_XTENSA_AUTOFILL_TLB_ENTRY(vecbase));
-
-	/* To finish, just restore vecbase and invalidate TLB entries
-	 * used to map the relocated vecbase.
-	 */
-	__asm__ volatile("wsr.vecbase %0; rsync\n\t"
-			:: "a"(vecbase));
-
-	/* Restore PS_UM so that level 1 interrupt handling will go to
-	 * UserExceptionVector.
-	 */
-	__asm__ volatile("rsr.ps %0" : "=r"(ps));
-	ps |= PS_UM;
-	__asm__ volatile("wsr.ps %0; rsync" :: "a"(ps));
-
-	xtensa_dtlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PTEVADDR + MB(4), 3));
-	xtensa_itlb_entry_invalidate_sync(Z_XTENSA_TLB_ENTRY(Z_XTENSA_PTEVADDR + MB(4), 3));
-
-	/*
-	 * Clear out THREADPTR as we use it to indicate
-	 * whether we are in user mode or not.
-	 */
-	XTENSA_WUR("THREADPTR", 0);
+	__asm__ volatile("isync");
 }
 
-void xtensa_set_paging(uint32_t asid, uint32_t *l1_page)
-{
-}
-
+/* Invalidate all the entries in the refill TLB (though at least two,
+ * for the current code page and the current stack, will be
+ * repopulated by this code as it returns; but ring0/kernel address
+ * should be mapped identically at all times, so that's safe).  This
+ * is very simple on Xtensa: the refill TLB is architecturally defined
+ * as four ways (0-3) of 4k pages, with a fixed (and small) number of
+ * entries that can be directly addressed by the IxTLB instructions.
+ *
+ * This needs to be called in any circumstance where the mappings for
+ * a previously-used page table change.  It does not need to be called
+ * on context switch, where ASID tagging isolates entries for us.
+ */
 void xtensa_invalidate_refill_tlb(void)
 {
+	/* Note: this will emit some needless extra invalidations if
+	 * the I/D TLBs are different sizes, but we make up for that in
+	 * the reduced loop management code.
+	 */
+	int nent = BIT(MAX(XCHAL_ITLB_ARF_ENTRIES_LOG2,
+			   XCHAL_DTLB_ARF_ENTRIES_LOG2));
+
+	for(int way = 0; way < 4; way++) {
+		for(int i = 0; i < nent; i++) {
+			uint32_t arg = (i << 12) | way;
+
+			__asm__ volatile("idtlb %0; isync; iitlb %0; isync" :: "r"(arg));
+		}
+	}
 }
