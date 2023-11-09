@@ -229,6 +229,7 @@ static inline uint32_t *alloc_l2_table(void)
 
 	for (idx = 0; idx < CONFIG_XTENSA_MMU_NUM_L2_TABLES; idx++) {
 		if (!atomic_test_and_set_bit(l2_page_tables_track, idx)) {
+			printk("%s %p\n", __func__, &l2_page_tables[idx]);
 			return (uint32_t *)&l2_page_tables[idx];
 		}
 	}
@@ -252,26 +253,6 @@ static ALWAYS_INLINE void switch_page_tables(uint32_t *ptables, bool dtlb_inv, b
 {
 	xtensa_set_paging(asid, ptables);
 	return;
-	if (cache_inv) {
-		sys_cache_data_flush_and_invd_all();
-	}
-
-	/* Invalidate data TLB to L1 page table */
-	xtensa_dtlb_vaddr_invalidate((void *)Z_XTENSA_PAGE_TABLE_VADDR);
-
-	/* Now map the pagetable itself with KERNEL asid to avoid user thread
-	 * from tampering with it.
-	 */
-	xtensa_dtlb_entry_write_sync(
-		Z_XTENSA_PTE((uint32_t)ptables, Z_XTENSA_KERNEL_RING, 0),
-		Z_XTENSA_TLB_ENTRY(Z_XTENSA_PAGE_TABLE_VADDR, MMU_PTE_WAY));
-
-	if (dtlb_inv) {
-		/* Since L2 page tables are auto-refilled,
-		 * invalidate all of them to flush the old entries out.
-		 */
-		xtensa_invalidate_refill_tlb();
-	}
 }
 
 static void map_memory_range(const uint32_t start, const uint32_t end,
@@ -282,7 +263,7 @@ static void map_memory_range(const uint32_t start, const uint32_t end,
 	for (page = start; page < end; page += CONFIG_MMU_PAGE_SIZE) {
 		uint32_t pte = Z_XTENSA_PTE(page,
 					    shared ? Z_XTENSA_SHARED_RING : Z_XTENSA_KERNEL_RING,
-					    attrs);
+					    attrs | PAGE_TABLE_ATTR);
 		uint32_t l2_pos = Z_XTENSA_L2_POS(page);
 		uint32_t l1_pos = page >> 22;
 
@@ -294,13 +275,13 @@ static void map_memory_range(const uint32_t start, const uint32_t end,
 
 			init_page_table(table, XTENSA_L2_PAGE_TABLE_ENTRIES);
 
-			z_xtensa_kernel_ptables[l1_pos] =
-				Z_XTENSA_PTE((uint32_t)table, Z_XTENSA_KERNEL_RING,
-					     PAGE_TABLE_ATTR);
+			z_xtensa_kernel_ptables[l1_pos] = Z_XTENSA_PTE(
+								       (uint32_t)table, Z_XTENSA_KERNEL_RING, PAGE_TABLE_ATTR);
+			printk("\n%s pte: 0x%08x\n\n",__func__,  z_xtensa_kernel_ptables[l1_pos]);
 		}
 
 		table = (uint32_t *)(z_xtensa_kernel_ptables[l1_pos] & Z_XTENSA_PTE_PPN_MASK);
-		table[l2_pos] = pte;
+		table[l2_pos] = pte | PAGE_TABLE_ATTR;
 	}
 }
 
@@ -443,14 +424,14 @@ static bool l2_page_table_map(uint32_t *l1_table, void *vaddr, uintptr_t phys,
 
 		init_page_table(table, XTENSA_L2_PAGE_TABLE_ENTRIES);
 
-		l1_table[l1_pos] = Z_XTENSA_PTE((uint32_t)table, Z_XTENSA_KERNEL_RING, 0);
+		l1_table[l1_pos] = Z_XTENSA_PTE((uint32_t)table, Z_XTENSA_KERNEL_RING, PAGE_TABLE_ATTR);
 
 		sys_cache_data_flush_range((void *)&l1_table[l1_pos], sizeof(l1_table[0]));
 	}
 
 	table = (uint32_t *)(l1_table[l1_pos] & Z_XTENSA_PTE_PPN_MASK);
 	table[l2_pos] = Z_XTENSA_PTE(phys, is_user ? Z_XTENSA_USER_RING : Z_XTENSA_KERNEL_RING,
-				     flags);
+				     flags | PAGE_TABLE_ATTR);
 
 	sys_cache_data_flush_range((void *)&table[l2_pos], sizeof(table[0]));
 
@@ -833,8 +814,10 @@ static uint32_t *dup_table(uint32_t *source_table)
 	for (i = 0; i < XTENSA_L1_PAGE_TABLE_ENTRIES; i++) {
 		uint32_t *l2_table, *src_l2_table;
 
+
 		if (is_pte_illegal(source_table[i])) {
 			dst_table[i] = Z_XTENSA_MMU_ILLEGAL;
+			printk("%p[%d] 0x%08x\n", dst_table, i, dst_table[i]);
 			continue;
 		}
 
@@ -851,14 +834,20 @@ static uint32_t *dup_table(uint32_t *source_table)
 		/* The page table is using kernel ASID because we don't
 		 * user thread manipulate it.
 		 */
-		dst_table[i] = Z_XTENSA_PTE((uint32_t)l2_table, Z_XTENSA_KERNEL_RING,
-					    0);
+		dst_table[i] =
+			Z_XTENSA_PTE((uint32_t)l2_table, Z_XTENSA_KERNEL_RING, PAGE_TABLE_ATTR);
+		dst_table[i] |= 0x4;
+		printk("%p[%d] 0x%08x\n", dst_table, i, dst_table[i]);
+		if (i == 132) {
+			printk("dst_table: 0x%08x\n", dst_table[i]);
+		}
 
 		sys_cache_data_flush_range((void *)l2_table, XTENSA_L2_PAGE_TABLE_SIZE);
 	}
 
 	sys_cache_data_flush_range((void *)dst_table, XTENSA_L1_PAGE_TABLE_SIZE);
 
+	printk("%s: %p\n", __func__, dst_table);
 	return dst_table;
 
 err:
@@ -904,12 +893,13 @@ static int region_map_update(uint32_t *ptables, uintptr_t start,
 {
 	int ret = 0;
 
+	printk("\n\n%s %p -- 0x%08lx ... 0x%08lx\n", __func__, ptables, start, start + size);
 	for (size_t offset = 0; offset < size; offset += CONFIG_MMU_PAGE_SIZE) {
 		uint32_t *l2_table, pte;
 		uint32_t page = start + offset;
 		uint32_t l1_pos = page >> 22;
 		uint32_t l2_pos = Z_XTENSA_L2_POS(page);
-
+		printk("\tl1_pos: %d\n", l1_pos);
 		/* Make sure we grab a fresh copy of L1 page table */
 		sys_cache_data_invd_range((void *)&ptables[l1_pos], sizeof(ptables[0]));
 
@@ -918,8 +908,9 @@ static int region_map_update(uint32_t *ptables, uintptr_t start,
 		sys_cache_data_invd_range((void *)&l2_table[l2_pos], sizeof(l2_table[0]));
 
 		pte = Z_XTENSA_PTE_RING_SET(l2_table[l2_pos], ring);
-		pte = Z_XTENSA_PTE_ATTR_SET(pte, flags);
+		pte = Z_XTENSA_PTE_ATTR_SET(pte, flags | PAGE_TABLE_ATTR);
 
+		printk("\tpte: 0x%08x %p\n", pte, l2_table[l2_pos]);
 		l2_table[l2_pos] = pte;
 
 		sys_cache_data_flush_range((void *)&l2_table[l2_pos], sizeof(l2_table[0]));

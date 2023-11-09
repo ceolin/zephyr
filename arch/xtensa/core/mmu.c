@@ -74,7 +74,6 @@ void xtensa_page_table_validate(uint32_t *l1)
 {
 	for (int i = 0; i < 1024; i++) {
 		uint32_t pte = l1[i];
-
 		if (!pte_valid(pte)) {
 			continue;
 		}
@@ -82,11 +81,12 @@ void xtensa_page_table_validate(uint32_t *l1)
 		__ASSERT_NO_MSG(pte_ring(pte) == 0);
 
 		uint32_t phys = lookup_pte(l1, pte_addr(pte));
+		printk("%s l1 %p[%d] pte (0x%08x) phys (0x%08x)\n", __func__, l1, i, pte, phys);
 
 		__ASSERT_NO_MSG(pte_valid(phys));
 		__ASSERT_NO_MSG((phys >> 12) == (pte >> 12)); /* map to same page */
 		__ASSERT_NO_MSG(pte_ring(phys) == 0);
-		__ASSERT_NO_MSG((pte & 0xc) == (phys & 0xc)); /* cache bits identical */
+		__ASSERT((pte & 0xc) == (phys & 0xc), "pte 0x%08x phys 0x%08x", pte, phys); /* cache bits identical */
 		if (CONFIG_MP_MAX_NUM_CPUS > 1) {
 			__ASSERT_NO_MSG((pte & 0xf) == 0);
 		}
@@ -152,6 +152,9 @@ void xtensa_set_paging(uint32_t user_asid, uint32_t *l1_page)
 	 */
 	struct tlb_regs regs;
 
+	xtensa_page_table_validate(l1_page);
+	printk("%s set paging: %p\n", __func__, l1_page);
+
 	compute_regs(user_asid, l1_page, &regs);
 
 	__asm__ volatile("   j 1f             \n"
@@ -201,7 +204,7 @@ void xtensa_init_paging(uint32_t *l1_page)
 #endif
 
 	compute_regs(ASID_INVALID, l1_page, &regs);
-
+	printk("%s set paging: %p\n", __func__, l1_page);
 	uint32_t idtlb_pte = (regs.ptevaddr & 0xe0000000) | XCHAL_SPANNING_WAY;
 	uint32_t idtlb_stk = (((uint32_t) &regs) & ~0xfff) | XCHAL_SPANNING_WAY;
 	uint32_t iitlb_pc  = (((uint32_t) &z_xt_init_pc) & ~0xfff) | XCHAL_SPANNING_WAY;
