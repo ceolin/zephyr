@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <zephyr/kernel.h>
 #include <xtensa/config/core-isa.h>
+#include <xtensa_mmu_priv.h>
 
 #define ASID_INVALID 0
 
@@ -151,6 +152,10 @@ void xtensa_set_paging(uint32_t user_asid, uint32_t *l1_page)
 	 * and is performance-sensitive.
 	 */
 	struct tlb_regs regs;
+	uint32_t threadptr;
+
+	__asm__ volatile("rur.threadptr %0" : "=r"(threadptr));
+	__asm__ volatile("wur.threadptr %0" :: "r"(0));
 
 	compute_regs(user_asid, l1_page, &regs);
 
@@ -165,6 +170,14 @@ void xtensa_set_paging(uint32_t user_asid, uint32_t *l1_page)
 			 :: "r"(regs.ptevaddr), "r"(regs.rasid),
 			    "r"(regs.ptepin_at), "r"(regs.ptepin_as),
 			    "r"(regs.vecpin_at), "r"(regs.vecpin_as));
+	/* printk("%s rasid(0x%08x) asid(%d) table(%p)\n", __func__, regs.rasid, user_asid, l1_page); */
+	/* uint32_t entry = xtensa_dtlb_probe((void *)0x159bd0); */
+	/* printk("\tentry: %p\n", (void *)entry); */
+	/* printk("\tdtlb0: %p\n", xtensa_dtlb_vaddr_read(entry)); */
+	/* uint32_t pte = lookup_pte(l1_page, 0x159bd0); */
+	/* printk("\tpte: %p\n", (void *)pte); */
+	__asm__ volatile("wur.threadptr %0" :: "r"(threadptr));
+	/* xtensa_invalidate_refill_tlb(); */
 }
 
 /* This is effectively the same algorithm from xtensa_set_paging(),

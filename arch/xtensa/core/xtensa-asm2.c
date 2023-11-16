@@ -9,6 +9,7 @@
 #include <ksched.h>
 #include <zephyr/kernel_structs.h>
 #include <kernel_internal.h>
+#include <xtensa_mmu_priv.h>
 #include <kswap.h>
 #include <_soc_inthandlers.h>
 #include <zephyr/toolchain.h>
@@ -221,14 +222,20 @@ static void print_fatal_exception(void *print_stack, int cause,
 	ps = bsa->ps;
 	pc = (void *)bsa->pc;
 
+
 	__asm__ volatile("rsr.excvaddr %0" : "=r"(vaddr));
+	/* __asm__ volatile("rsr.rasid %0" : "=r"(rasid)); */
+	/* uint32_t entry = xtensa_dtlb_probe((void *)0x159bd0); */
 
 	LOG_ERR(" ** FATAL EXCEPTION%s", (is_dblexc ? " (DOUBLE)" : ""));
 	LOG_ERR(" ** CPU %d EXCCAUSE %d (%s)",
 		arch_curr_cpu()->id, cause,
 		z_xtensa_exccause(cause));
 	LOG_ERR(" **  PC %p VADDR %p", pc, (void *)vaddr);
-
+	/* LOG_ERR(" **  RASID %p ", (void *)rasid); */
+	/* LOG_ERR(" **  ENTRY  %p ", (void*)entry); */
+	/* LOG_ERR(" **  PTE  %p ", xtensa_dtlb_vaddr_read(entry)); */
+	/* LOG_ERR(" **  PTE  %p ", xtensa_dtlb_paddr_read(entry)); */
 	if (is_dblexc) {
 		LOG_ERR(" **  DEPC %p", (void *)depc);
 	}

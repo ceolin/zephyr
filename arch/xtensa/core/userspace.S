@@ -32,6 +32,10 @@ z_xtensa_do_syscall:
 	rsr a2, ZSR_A0SAVE
 	s32i a2, a0, ___xtensa_irq_bsa_t_a0_OFFSET
 	rsr.ps a2
+	movi a3, ~PS_OWB_MASK
+	and a2, a2, a3
+	movi a3, PS_OWB(1)
+	or a2, a2, a3
 	s32i a2, a0, ___xtensa_irq_bsa_t_ps_OFFSET
 	rsr.epc1 a2
 	s32i a2, a0, ___xtensa_irq_bsa_t_pc_OFFSET
@@ -218,6 +222,9 @@ z_xtensa_userspace_enter:
 	 * erase user stack to avoid leak from previous context.
 	 */
 	mov a1, a7 /* stack start (low address) */
+	addi a1, a1, -16
+
+	SPILL_ALL_WINDOWS
 
 	rsr a0, ZSR_CPU
 	l32i a0, a0, ___cpu_t_current_OFFSET
@@ -231,7 +238,6 @@ z_xtensa_userspace_enter:
 	s32i a6, a1, 4
 	s32i a7, a1, 0
 
-	SPILL_ALL_WINDOWS
 
 	l32i a6, a1, 24
 	call4 xtensa_user_stack_perms
@@ -241,8 +247,8 @@ z_xtensa_userspace_enter:
 
 #ifndef CONFIG_THREAD_LOCAL_STORAGE
 	/* Set threadptr with the thread address, we are going to user mode. */
-	l32i a0, a1, 24
-	wur.THREADPTR a0
+	//l32i a0, a1, 24
+	//wur.THREADPTR a0
 #endif
 
 	/* Set now z_thread_entry parameters, we are simulating a call4

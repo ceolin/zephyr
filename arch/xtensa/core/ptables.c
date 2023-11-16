@@ -434,6 +434,7 @@ static bool l2_page_table_map(uint32_t *l1_table, void *vaddr, uintptr_t phys,
 				     flags);
 
 	sys_cache_data_flush_range((void *)&table[l2_pos], sizeof(table[0]));
+	xtensa_invalidate_refill_tlb();
 
 	return true;
 }
@@ -623,6 +624,7 @@ static bool l2_page_table_unmap(uint32_t *l1_table, void *vaddr)
 
 	/* Need to invalidate L2 page table as it is no longer valid. */
 	xtensa_dtlb_vaddr_invalidate((void *)l2_table);
+	xtensa_invalidate_refill_tlb();
 
 end:
 	return exec;
@@ -1148,6 +1150,12 @@ void z_xtensa_swap_update_page_tables(struct k_thread *incoming)
 	struct arch_mem_domain *domain =
 		&(incoming->mem_domain_info.mem_domain->arch);
 
+	uint32_t threadptr;
+
+	__asm__ volatile("rur.threadptr %0" : "=r"(threadptr));
+	__asm__ volatile("wur.threadptr %0" :: "r"(0));
+	/* printk("%s incomming (%p)\n", __func__, incoming); */
+	__asm__ volatile("wur.threadptr %0" :: "r"(threadptr));
 	switch_page_tables(ptables, true, false, domain->asid);
 }
 
