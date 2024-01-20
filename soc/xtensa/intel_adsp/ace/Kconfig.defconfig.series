@@ -11,9 +11,6 @@ config SOC_TOOLCHAIN_NAME
 	string
 	default "intel_ace15_mtpm"
 
-config SMP
-	default y
-
 config POWER_DOMAIN
 	default y
 
