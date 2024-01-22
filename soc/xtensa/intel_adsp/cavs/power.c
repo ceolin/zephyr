@@ -48,6 +48,13 @@ LOG_MODULE_REGISTER(soc);
 
 #define ALL_USED_INT_LEVELS_MASK (L2_INTERRUPT_MASK | L3_INTERRUPT_MASK)
 
+#if CONFIG_MP_MAX_NUM_CPUS > 1
+#define CPU_ACTIVE_SET(id, val) \
+	soc_cpus_active[(id)] = (val)
+#else
+#define CPU_ACTIVE_SET(id, val)
+#endif
+
 /*
  * @biref FW entry point called by ROM during normal boot flow
  */
@@ -140,7 +147,7 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
 		z_xt_ints_off(0xffffffff);
 		xthal_window_spill();
 		_save_core_context();
-		soc_cpus_active[cpu] = false;
+		CPU_ACTIVE_SET(cpu, false);
 		sys_cache_data_flush_and_invd_all();
 		if (cpu == 0) {
 			uint32_t hpsram_mask[HPSRAM_SEGMENTS] = {0};
@@ -177,7 +184,7 @@ void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id)
 	uint32_t cpu = arch_proc_id();
 
 	if (state == PM_STATE_SOFT_OFF) {
-		soc_cpus_active[cpu] = true;
+		CPU_ACTIVE_SET(cpu, true);
 		sys_cache_data_flush_and_invd_all();
 		z_xt_ints_on(core_desc[cpu].intenable);
 	} else {
