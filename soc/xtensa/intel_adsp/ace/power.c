@@ -25,6 +25,13 @@
 #define SRAM_ALIAS_BASE         0xA0000000
 #define SRAM_ALIAS_MASK         0xF0000000
 
+#if CONFIG_MP_MAX_NUM_CPUS > 1
+#define CPU_ACTIVE_SET(id, val) \
+	soc_cpus_active[(id)] = (val)
+#else
+#define CPU_ACTIVE_SET(id, val)
+#endif
+
 __imr void power_init(void)
 {
 #if CONFIG_ADSP_IDLE_CLOCK_GATING
@@ -169,9 +176,10 @@ void power_gate_entry(uint32_t core_id)
 		 */
 		z_xt_ints_on(ALL_USED_INT_LEVELS_MASK);
 	}
-
-	soc_cpus_active[core_id] = false;
+	CPU_ACTIVE_SET(core_id, false);
+#if CONFIG_MP_MAX_CPUS > 1
 	sys_cache_data_flush_range(soc_cpus_active, sizeof(soc_cpus_active));
+#endif
 	k_cpu_idle();
 	z_xt_ints_off(0xffffffff);
 }
@@ -182,10 +190,12 @@ void power_gate_exit(void)
 	sys_cache_data_flush_and_invd_all();
 	_restore_core_context();
 
+#if CONFIG_MP_MAX_CPUS > 1
 	/* Secondary core is resumed by set_dx */
 	if (arch_proc_id()) {
 		mp_resume_entry();
 	}
+#endif /* CONFIG_MP_MAX_CPUS > 1 */
 }
 
 __asm__(".align 4\n\t"
@@ -254,7 +264,7 @@ void pm_state_set(enum pm_state state, uint8_t substate_id)
 		core_desc[cpu].bctl = DSPCS.bootctl[cpu].bctl;
 		DSPCS.bootctl[cpu].bctl &= ~DSPBR_BCTL_WAITIPCG;
 		if (cpu == 0) {
-			soc_cpus_active[cpu] = false;
+			CPU_ACTIVE_SET(cpu, false);
 #ifdef CONFIG_ADSP_IMR_CONTEXT_SAVE
 			/* save storage and restore information to imr */
 			__ASSERT_NO_MSG(global_imr_ram_storage != NULL);
@@ -367,7 +377,7 @@ void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id)
 			soc_mp_on_d3_exit();
 		}
 #endif /* CONFIG_ADSP_IMR_CONTEXT_SAVE */
-		soc_cpus_active[cpu] = true;
+		CPU_ACTIVE_SET(cpu, true);
 		sys_cache_data_flush_and_invd_all();
 	} else if (state == PM_STATE_RUNTIME_IDLE) {
 		if (cpu != 0) {
@@ -397,7 +407,7 @@ void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id)
 			DSPCS.bootctl[cpu].battr &= (~LPSCTL_BATTR_MASK);
 		}
 
-		soc_cpus_active[cpu] = true;
+		CPU_ACTIVE_SET(cpu, true);
 		sys_cache_data_flush_and_invd_all();
 	} else {
 		__ASSERT(false, "invalid argument - unsupported power state");
