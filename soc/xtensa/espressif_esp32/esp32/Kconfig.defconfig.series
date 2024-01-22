@@ -32,9 +32,6 @@ config SCHED_IPI_SUPPORTED
 config SCHED_CPU_MASK
 	default y
 
-config MP_MAX_NUM_CPUS
-	default 2
-
 endif # SMP config
 
 if GDBSTUB
