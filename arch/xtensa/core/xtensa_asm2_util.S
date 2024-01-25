@@ -423,29 +423,42 @@ _syscall:
 .pushsection .KernelExceptionVector.text, "ax"
 .global _KernelExceptionVector
 _KernelExceptionVector:
-#ifdef CONFIG_XTENSA_MMU
 	wsr a0, ZSR_A0SAVE
+	rsync
 	rsr.exccause a0
+#ifdef CONFIG_XTENSA_MMU
 	beqi a0, EXCCAUSE_ITLB_MISS, _handle_tlb_miss_kernel
 	addi a0, a0, -EXCCAUSE_DTLB_MISS
 	beqz a0, _handle_tlb_miss_kernel
+	rsr.exccause a0
+#endif /* CONFIG_XTENSA_MMU */
+	bnei a0, EXCCAUSE_ALLOCA, _not_alloca_kernel
+
+	j _xt_alloca_exc
+
+_not_alloca_kernel:
 	rsr a0, ZSR_A0SAVE
-#endif
 	j _Level1Vector
 #ifdef CONFIG_XTENSA_MMU
 _handle_tlb_miss_kernel:
-	/* The TLB miss handling is used only during xtensa_mmu_init()
-	 * where vecbase is at a different address, as the offset used
-	 * in the jump ('j') instruction will not jump to correct
-	 * address (... remember the vecbase is moved).
-	 * So we handle TLB misses in a very simple way here until
-	 * we move back to using UserExceptionVector above.
+	/**
+	 * Handle TLB miss by loading the PTE page:
+	 * The way it works is, when we try to access an address that is not
+	 * mapped, we will have a miss. The HW then will try to get the
+	 * correspondent memory in the page table. As the page table is not
+	 * mapped in memory we will have a second miss, which will trigger
+	 * an exception. In the exception (here) what we do is to exploit
+	 * this hardware capability just trying to load the page table
+	 * (not mapped address), which will cause a miss, but then the hardware
+	 * will automatically map it again from the page table. This time
+	 * it will work since the page necessary to map the page table itself
+	 * are wired map.
 	 */
 	rsr.ptevaddr a0
 	l32i a0, a0, 0
 	rsr a0, ZSR_A0SAVE
 	rfe
-#endif
+#endif /* CONFIG_XTENSA_MMU */
 .popsection
 
 #ifdef XCHAL_DOUBLEEXC_VECTOR_VADDR
