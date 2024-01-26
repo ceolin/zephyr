@@ -456,7 +456,7 @@ _not_l1:
 	/* Since we are unmasking EXCM, we need to set RING bits to kernel
 	 * mode, otherwise we won't be able to run the exception handler in C.
 	 */
-	movi a3, ~(PS_EXCM_MASK) & ~(PS_RING_MASK)
+	movi a3, ~(PS_EXCM_MASK) & ~(PS_RING_MASK) & ~(PS_UM)
 	and a0, a0, a3
 	wsr.ZSR_EPS a0
 	wsr.ps a0

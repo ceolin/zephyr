@@ -127,7 +127,7 @@ _id_ok:
 	/* Since we are unmasking EXCM, we need to set RING bits to kernel
 	 * mode, otherwise we won't be able to run the exception handler in C.
 	 */
-	movi a0, PS_WOE|PS_CALLINC(0)|PS_UM|PS_INTLEVEL(0)
+	movi a0, PS_WOE|PS_CALLINC(0)|PS_INTLEVEL(0)
 	wsr.ps a0
 	rsync
 

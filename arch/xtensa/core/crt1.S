@@ -106,7 +106,7 @@ _start:
 	 * PS.EXCM = 0
 	 * PS.INTLEVEL = XCHAL_EXCM_LEVEL
 	 */
-	movi	a3, PS_UM|PS_WOE|PS_INTLEVEL(XCHAL_EXCM_LEVEL)
+	movi	a3, PS_WOE|PS_INTLEVEL(XCHAL_EXCM_LEVEL)
 # endif
 	wsr	a3, PS
 	rsync

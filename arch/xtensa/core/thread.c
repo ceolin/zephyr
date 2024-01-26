@@ -69,7 +69,7 @@ static void *init_stack(struct k_thread *thread, int *stack_top,
 
 	(void)memset(frame, 0, bsasz);
 
-	frame->bsa.ps = PS_WOE | PS_UM | PS_CALLINC(1);
+	frame->bsa.ps = PS_WOE | PS_CALLINC(1);
 #ifdef CONFIG_USERSPACE
 	if ((thread->base.user_options & K_USER) == K_USER) {
 		frame->bsa.pc = (uintptr_t)arch_user_mode_enter;
