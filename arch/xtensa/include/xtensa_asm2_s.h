@@ -176,8 +176,7 @@
 	rsr.scompare1 a0
 	s32i a0, a1, ___xtensa_irq_bsa_t_scompare1_OFFSET
 #endif
-#if XCHAL_HAVE_THREADPTR && \
-	(defined(CONFIG_USERSPACE) || defined(CONFIG_THREAD_LOCAL_STORAGE))
+#if XCHAL_HAVE_THREADPTR && defined(CONFIG_THREAD_LOCAL_STORAGE)
 	rur.THREADPTR a0
 	s32i a0, a1, ___xtensa_irq_bsa_t_threadptr_OFFSET
 #endif

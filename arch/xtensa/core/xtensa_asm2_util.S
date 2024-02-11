@@ -175,8 +175,7 @@ _restore_context:
 	l32i a0, a1, ___xtensa_irq_bsa_t_scompare1_OFFSET
 	wsr a0, SCOMPARE1
 #endif
-#if XCHAL_HAVE_THREADPTR && \
-	(defined(CONFIG_USERSPACE) || defined(CONFIG_THREAD_LOCAL_STORAGE))
+#if XCHAL_HAVE_THREADPTR && defined(CONFIG_THREAD_LOCAL_STORAGE)
 	l32i a0, a1, ___xtensa_irq_bsa_t_threadptr_OFFSET
 	wur a0, THREADPTR
 #endif

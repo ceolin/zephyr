@@ -15,17 +15,6 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(os, CONFIG_KERNEL_LOG_LEVEL);
 
-#ifdef CONFIG_USERSPACE
-
-#ifdef CONFIG_THREAD_LOCAL_STORAGE
-/*
- * Per-thread (TLS) variable indicating whether execution is in user mode.
- */
-__thread uint32_t is_user_mode;
-#endif
-
-#endif /* CONFIG_USERSPACE */
-
 /**
  * Initializes a stack area such that it can be "restored" later and
  * begin running with the specified function and three arguments.  The
@@ -80,12 +69,8 @@ static void *init_stack(struct k_thread *thread, int *stack_top,
 	frame->bsa.pc = (uintptr_t)z_thread_entry;
 #endif
 
-#if XCHAL_HAVE_THREADPTR
-#ifdef CONFIG_THREAD_LOCAL_STORAGE
+#if XCHAL_HAVE_THREADPTR && defined(CONFIG_THREAD_LOCAL_STORAGE)
 	frame->bsa.threadptr = thread->tls;
-#elif CONFIG_USERSPACE
-	frame->bsa.threadptr = (uintptr_t)((thread->base.user_options & K_USER) ? thread : NULL);
-#endif
 #endif
 
 	/* Arguments to z_thread_entry().  Remember these start at A6,

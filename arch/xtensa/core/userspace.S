@@ -95,23 +95,6 @@ _id_ok:
 	add a2, a2, a3
 	l32i a2, a2, 0
 
-	/* Clear up the threadptr because it is used
-	 * to check if a thread is running on user mode. Since
-	 * we are in a interruption we don't want the system
-	 * thinking it is possibly running in user mode.
-	 */
-#ifdef CONFIG_THREAD_LOCAL_STORAGE
-	movi a0, is_user_mode@tpoff
-	rur.THREADPTR a3
-	add a0, a3, a0
-
-	movi a3, 0
-	s32i a3, a0, 0
-#else
-	movi a0, 0
-	wur.THREADPTR a0
-#endif
-
 	/* Set syscall parameters. We have an initial call4 to set up the
 	 * the stack and then a new call4 for the syscall function itself.
 	 * So parameters should be put as if it was a call8.
@@ -164,18 +147,6 @@ _syscall_returned:
 #if XCHAL_HAVE_S32C1I
 	l32i a3, a1, ___xtensa_irq_bsa_t_scompare1_OFFSET
 	wsr a3, SCOMPARE1
-#endif
-
-#ifdef CONFIG_THREAD_LOCAL_STORAGE
-	l32i a3, a1, ___xtensa_irq_bsa_t_threadptr_OFFSET
-	movi a0, is_user_mode@tpoff
-	add a0, a3, a0
-	movi a3, 1
-	s32i a3, a0, 0
-#else
-	rsr a3, ZSR_CPU
-	l32i a3, a3, ___cpu_t_current_OFFSET
-	wur.THREADPTR a3
 #endif
 
 	l32i a3, a1, ___xtensa_irq_bsa_t_ps_OFFSET
@@ -239,18 +210,6 @@ xtensa_userspace_enter:
 
 	call4 xtensa_user_stack_perms
 	call4 xtensa_swap_update_page_tables
-
-#ifdef CONFIG_THREAD_LOCAL_STORAGE
-	rur.threadptr a3
-	movi a0, is_user_mode@tpoff
-	add a0, a3, a0
-	movi a3, 1
-	s32i a3, a0, 0
-#else
-	rsr a3, ZSR_CPU
-	l32i a3, a3, ___cpu_t_current_OFFSET
-	wur.THREADPTR a3
-#endif
 
 	/* Set now z_thread_entry parameters, we are simulating a call4
 	 * call, so parameters start at a6, a7, ...
