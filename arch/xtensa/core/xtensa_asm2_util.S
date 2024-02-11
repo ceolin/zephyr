@@ -5,6 +5,7 @@
  */
 #include <xtensa_asm2_s.h>
 #include <offsets.h>
+#include <syscall_list.h>
 #include <zsr.h>
 
 #if defined(CONFIG_SIMULATOR_XTENSA) || defined(XT_SIMULATOR)
@@ -352,6 +353,32 @@ DEF_EXCINT 7, _handle_excint, xtensa_int7_c
 DEF_EXCINT XCHAL_DEBUGLEVEL, _handle_excint, xtensa_debugint_c
 #endif
 
+.pushsection .text.fast_user_syscall, "ax"
+.global fast_user_syscall
+fast_user_syscall:
+	addi a0, a2, -K_SYSCALL_LIMIT
+	beqz a0, _syscall_is_user_contex
+	rsr a0, ZSR_A0SAVE
+	j xtensa_do_syscall
+_syscall_is_user_contex:
+	rsr a0, ZSR_A0SAVE
+	rsr.epc1 a2
+	addi a2, a2, 3
+	wsr.epc1 a2
+	movi a2, 1
+
+	rfe
+
+.pushsection .text.fast_kernel_syscall, "ax"
+.global fast_kernel_syscall
+fast_kernel_syscall:
+	rsr a0, ZSR_A0SAVE
+	rsr.epc1 a2
+	addi a2, a2, 3
+	wsr.epc1 a2
+	movi a2, 0
+	rfe
+
 /* The user exception vector is defined here, as we need to handle
  * MOVSP exceptions in assembly (the result has to be to unspill the
  * caller function of the code that took the exception, and that can't
@@ -406,8 +433,8 @@ _handle_tlb_miss_user:
 	rfe
 #ifdef CONFIG_USERSPACE
 _syscall:
-	rsr a0, ZSR_A0SAVE
-	j xtensa_do_syscall
+	j fast_user_syscall
+
 #endif /* CONFIG_USERSPACE */
 #endif /* CONFIG_XTENSA_MMU */
 .popsection
@@ -427,6 +454,9 @@ _KernelExceptionVector:
 	rsync
 	rsr.exccause a0
 #ifdef CONFIG_XTENSA_MMU
+#ifdef CONFIG_USERSPACE
+	beqi a0, EXCCAUSE_SYSCALL, _kernel_syscall
+#endif /* CONFIG_USERSPACE */
 	beqi a0, EXCCAUSE_ITLB_MISS, _handle_tlb_miss_kernel
 	addi a0, a0, -EXCCAUSE_DTLB_MISS
 	beqz a0, _handle_tlb_miss_kernel
@@ -458,6 +488,11 @@ _handle_tlb_miss_kernel:
 	l32i a0, a0, 0
 	rsr a0, ZSR_A0SAVE
 	rfe
+#ifdef CONFIG_USERSPACE
+_kernel_syscall:
+	j fast_kernel_syscall
+
+#endif /* CONFIG_USERSPACE */
 #endif /* CONFIG_XTENSA_MMU */
 .popsection
 

@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include <zephyr/linker/sections.h>
 #include <zephyr/sys/util_macro.h>
+#include <syscall_list.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -201,23 +202,14 @@ static SYSINL uintptr_t arch_syscall_invoke0(uintptr_t call_id)
  */
 static inline bool arch_is_user_context(void)
 {
-	uint32_t thread;
+	register uintptr_t a2 __asm__("%a2") = K_SYSCALL_LIMIT;
 
-	__asm__ volatile(
-		"rur.THREADPTR %0\n\t"
-		: "=a" (thread)
-	);
-#ifdef CONFIG_THREAD_LOCAL_STORAGE
-	extern __thread uint32_t is_user_mode;
+	__asm__ volatile("syscall\n\t"
+			 : "=r" (a2)
+			 : "r" (a2)
+			 : "memory");
 
-	if (!thread) {
-		return false;
-	}
-
-	return is_user_mode != 0;
-#else
-	return !!thread;
-#endif
+	return a2;
 }
 
 #undef SYSINL
