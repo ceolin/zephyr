@@ -151,6 +151,10 @@ void pm_state_set(enum pm_state state, uint8_t substate_id);
  */
 void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id);
 
+/** @cond INTERNAL_HIDDEN */
+void z_pm_save_idle_exit(void);
+/** @endcond */
+
 /**
  * @}
  */
@@ -175,9 +179,10 @@ static inline const struct pm_state_info *pm_state_next_get(uint8_t cpu)
 
 	return NULL;
 }
+static inline void z_pm_save_idle_exit(void)
+{
+}
 #endif /* CONFIG_PM */
-
-void z_pm_save_idle_exit(void);
 
 #ifdef __cplusplus
 }
