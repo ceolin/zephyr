@@ -228,7 +228,13 @@ static int sys_clock_driver_init(void)
 
 void sys_clock_idle_exit(void)
 {
-	sys_clock_driver_init();
+	unsigned int key = arch_irq_lock();
+
+	if (_current_cpu->id == 0) {
+		sys_clock_driver_init();
+	}
+
+	arch_irq_unlock(key);
 }
 
 #endif
