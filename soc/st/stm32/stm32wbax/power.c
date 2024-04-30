@@ -115,10 +115,6 @@ static void set_mode_suspend_to_ram(void)
 
 	/* Save context and enter Standby mode */
 	arch_pm_s2ram_suspend(suspend_to_ram);
-
-	/* Execution is restored at this point after wake up */
-	/* Restore system clock as soon as we exit standby mode */
-	sys_clock_idle_exit();
 }
 #endif
 
