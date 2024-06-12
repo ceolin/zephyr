@@ -11,6 +11,7 @@
 #include <zephyr/arch/xtensa/arch.h>
 #include <zephyr/pm/pm.h>
 #include <zephyr/pm/device_runtime.h>
+#include <zephyr/drivers/clock_control/clock_control_adsp.h>
 
 #include <soc.h>
 #include <adsp_boot.h>
@@ -167,7 +168,7 @@ void soc_start_core(int cpu_num)
 	/* Clock switching lock needs to be incremented for each active core.
 	 * This increment is specifically for the secondary cores.
 	 */
-	intel_adsp_acquire_clock_switch_lock(pm_state_custom_data_get(PM_STATE_ACTIVE, 0));
+	adsp_clock_switch_lock();
 #endif /* CONFIG_ADSP_DYNAMIC_CLOCK_SWITCHING */
 }
 

@@ -7,6 +7,7 @@
 #define ZEPHYR_SOC_INTEL_ADSP_CAVS_CLK_H_
 
 #include <stdint.h>
+#include <zephyr/sys/atomic.h>
 #include <adsp_shim.h>
 
 struct adsp_cpu_clock_info {
@@ -14,6 +15,8 @@ struct adsp_cpu_clock_info {
 	uint32_t current_freq;
 	uint32_t lowest_freq;
 };
+
+extern atomic_t clock_switch_lock_refcount;
 
 void adsp_clock_init(void);
 
@@ -96,5 +99,40 @@ bool adsp_clock_source_is_supported(int source);
  * @return frequency on success, 0 on error
  */
 uint32_t adsp_clock_source_frequency(int source);
+
+#ifdef CONFIG_ADSP_DYNAMIC_CLOCK_SWITCHING
+/**
+ * @brief Increment the clock switch lock reference counter.
+ *
+ * This function atomically increments the reference counter for the clock switch lock. It is used
+ * to prevent clock switching operations that change the current DSP clock when a core becomes
+ * active. The function returns true if this is the first core to request the lock, indicating that
+ * the clock switching operation was previously not locked.
+ *
+ * @return True if this is the first increment operation, false otherwise.
+ */
+static ALWAYS_INLINE bool adsp_clock_switch_lock(void)
+{
+	return atomic_inc(&clock_switch_lock_refcount) == 0;
+}
+
+/**
+ * @brief Decrement the clock switch lock reference counter.
+ *
+ * This function atomically decrements the reference counter for the clock switch lock. It allows
+ * clock switching operations to proceed when the last active core no longer needs the clock to be
+ * stable. The function returns true if this is the first core to request the lock, indicating that
+ * the clock switching operation was previously not locked.
+ *
+ * @return True if this is the last decrement operation, false otherwise.
+ */
+static ALWAYS_INLINE bool adsp_clock_switch_release(void)
+{
+		atomic_t old_value = atomic_dec(&clock_switch_lock_refcount);
+
+		__ASSERT(old_value > 0, "Unbalanced clock switching lock use!");
+		return old_value == 1;
+}
+#endif /* CONFIG_ADSP_DYNAMIC_CLOCK_SWITCHING */
 
 #endif /* ZEPHYR_SOC_INTEL_ADSP_CAVS_CLK_H_ */

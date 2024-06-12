@@ -131,7 +131,7 @@ config ADSP_IDLE_CLOCK_GATING
 
 config ADSP_DYNAMIC_CLOCK_SWITCHING
 	bool "DSP clock switching in Idle"
-	depends on PM_STATE_CUSTOM_DATA
+	depends on CLOCK_CONTROL
 	help
 	  When true, the firmware will slow down the clock if all cores are in an idle
 	  state. This dynamic clock change aims to reduce energy consumption when the DSP

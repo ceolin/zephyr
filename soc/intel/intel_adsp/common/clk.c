@@ -17,6 +17,10 @@
 static struct adsp_cpu_clock_info platform_cpu_clocks[CONFIG_MP_MAX_NUM_CPUS];
 static struct k_spinlock lock;
 
+#ifdef CONFIG_ADSP_DYNAMIC_CLOCK_SWITCHING
+atomic_t clock_switch_lock_refcount;
+#endif /* CONFIG_ADSP_DYNAMIC_CLOCK_SWITCHING */
+
 int adsp_clock_freq_enc[] = ADSP_CPU_CLOCK_FREQ_ENC;
 int adsp_clock_freq_mask[] = ADSP_CPU_CLOCK_FREQ_MASK;
 
