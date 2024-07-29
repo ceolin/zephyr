@@ -111,12 +111,27 @@ enum pm_device_action {
  *
  * @param dev Device instance.
  * @param action Requested action.
- *
+ * @param state The state that the system is going in case of PM_DEVICE_ACTION_SUSPEND
+ *              or the state that the system is waking up in case of
+ *              PM_DEVICE_ACTION_RESUME.
  * @retval 0 If successful.
  * @retval -ENOTSUP If the requested action is not supported.
  * @retval Errno Other negative errno on failure.
  */
 typedef int (*pm_device_action_cb_t)(const struct device *dev,
+				enum pm_device_action action, const struct pm_state_info *state);
+
+/**
+ * @brief Device PM action callback.
+ *
+ * @param dev Device instance.
+ * @param action Requested action.
+ *
+ * @retval 0 If successful.
+ * @retval -ENOTSUP If the requested action is not supported.
+ * @retval Errno Other negative errno on failure.
+ */
+typedef int (*pm_device_runtime_action_cb_t)(const struct device *dev,
 				     enum pm_device_action action);
 
 /**
@@ -146,6 +161,8 @@ struct pm_device_base {
 #if defined(CONFIG_PM_DEVICE_RUNTIME) || defined(__DOXYGEN__)
 	/** Device usage count */
 	uint32_t usage;
+	/** Device PM action callback */
+	pm_device_runtime_action_cb_t runtime_action_cb;
 #endif /* CONFIG_PM_DEVICE_RUNTIME */
 #ifdef CONFIG_PM_DEVICE_POWER_DOMAIN
 	/** Power Domain it belongs */
@@ -415,6 +432,9 @@ const char *pm_device_state_str(enum pm_device_state state);
  *
  * @param dev Device instance.
  * @param action Device pm action.
+ * @param state The state that the system is going in case of PM_DEVICE_ACTION_SUSPEND
+ *              or the state that the system is waking up in case of
+ *              PM_DEVICE_ACTION_RESUME.
  *
  * @retval 0 If successful.
  * @retval -ENOTSUP If requested state is not supported.
@@ -424,8 +444,27 @@ const char *pm_device_state_str(enum pm_device_state state);
  * @retval -EPERM If device has power state locked.
  * @retval Errno Other negative errno on failure.
  */
-int pm_device_action_run(const struct device *dev,
-		enum pm_device_action action);
+int pm_device_action_run(const struct device *dev, enum pm_device_action action,
+			 const struct pm_state_info *state);
+
+/**
+ * @brief Run a pm action on a device.
+ *
+ * This function calls the device PM control callback so that the device does
+ * the necessary operations to execute the given action.
+ *
+ * @param dev Device instance.
+ * @param action Device pm action.
+ *
+ * @retval 0 If successful.
+ * @retval -ENOTSUP If requested state is not supported.
+ * @retval -EALREADY If device is already at the requested state.
+ * @retval -EBUSY If device is changing its state.
+ * @retval -ENOSYS If device does not support PM.
+ * @retval -EPERM If device has power state locked.
+ * @retval Errno Other negative errno on failure.
+ */
+int pm_device_runtime_action_run(const struct device *dev, enum pm_device_action action)
 
 /**
  * @brief Run a pm action on all children of a device.

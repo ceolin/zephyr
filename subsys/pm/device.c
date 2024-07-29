@@ -40,7 +40,8 @@ const char *pm_device_state_str(enum pm_device_state state)
 }
 
 int pm_device_action_run(const struct device *dev,
-			 enum pm_device_action action)
+			 enum pm_device_action action,
+			 const struct pm_state_info *state)
 {
 	struct pm_device_base *pm = dev->pm_base;
 	int ret;
@@ -57,7 +58,7 @@ int pm_device_action_run(const struct device *dev,
 		return -ENOTSUP;
 	}
 
-	ret = pm->action_cb(dev, action);
+	ret = pm->action_cb(dev, action, state);
 	if (ret < 0) {
 		/*
 		 * TURN_ON and TURN_OFF are actions triggered by a power domain
