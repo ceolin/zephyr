@@ -104,6 +104,18 @@ enum pm_device_action {
 	 *     Action triggered only by a power domain.
 	 */
 	PM_DEVICE_ACTION_TURN_ON,
+	/**
+	 * Runtime Suspend.
+	 * @note:
+	 *     Action triggered by pm_device_runtime_put()
+	 **/
+	PM_DEVICE_ACTION_RUNTIME_SUSPEND,
+	/**
+	 * Runtime Resume.
+	 * @note:
+	 *     Action triggered by pm_device_runtime_get()
+	 **/
+	PM_DEVICE_ACTION_RUNTIME_RESUME,
 };
 
 /**
