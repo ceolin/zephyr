@@ -18,10 +18,12 @@ struct test_driver_data {
 };
 
 static int test_driver_action(const struct device *dev,
-			      enum pm_device_action action)
+			      enum pm_device_action action,
+			      const struct pm_state_info *soc_state)
 {
 	ARG_UNUSED(dev);
 	ARG_UNUSED(action);
+	ARG_UNUSED(soc_state);
 
 	return 0;
 }

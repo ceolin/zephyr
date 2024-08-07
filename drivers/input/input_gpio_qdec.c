@@ -350,9 +350,12 @@ static void gpio_qdec_pin_suspend(const struct device *dev, bool suspend)
 }
 
 static int gpio_qdec_pm_action(const struct device *dev,
-			       enum pm_device_action action)
+			       enum pm_device_action action,
+			       const struct pm_state_info *soc_state)
 {
 	struct gpio_qdec_data *data = dev->data;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:

@@ -71,9 +71,12 @@ static void pd_gpio_monitor_callback(const struct device *port,
 	pm_device_children_action_run(data->dev, PM_DEVICE_ACTION_TURN_ON, NULL);
 }
 
-static int pd_gpio_monitor_pm_action(const struct device *dev, enum pm_device_action action)
+static int pd_gpio_monitor_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	struct pd_gpio_monitor_data *data = dev->data;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_TURN_ON:

@@ -229,11 +229,14 @@ static int ps2_xec_enable_interface(const struct device *dev)
 }
 
 #ifdef CONFIG_PM_DEVICE
-static int ps2_xec_pm_action(const struct device *dev, enum pm_device_action action)
+static int ps2_xec_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct ps2_xec_config *const devcfg = dev->config;
 	struct ps2_regs * const regs = devcfg->regs;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

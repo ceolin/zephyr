@@ -433,11 +433,14 @@ int lis2dh_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int lis2dh_pm_action(const struct device *dev,
-			    enum pm_device_action action)
+			    enum pm_device_action action,
+			    const struct pm_state_info *soc_state)
 {
 	int status;
 	struct lis2dh_data *lis2dh = dev->data;
 	uint8_t regdata;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

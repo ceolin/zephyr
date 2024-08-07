@@ -821,9 +821,12 @@ static int bq274xx_exit_shutdown_mode(const struct device *dev)
 }
 
 static int bq274xx_pm_action(const struct device *dev,
-			     enum pm_device_action action)
+			     enum pm_device_action action,
+			     const struct pm_state_info *soc_state)
 {
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_TURN_OFF:

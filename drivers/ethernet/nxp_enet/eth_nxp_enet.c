@@ -780,11 +780,14 @@ static int eth_nxp_enet_init(const struct device *dev)
 }
 
 #if defined(CONFIG_NET_POWER_MANAGEMENT)
-static int eth_nxp_enet_device_pm_action(const struct device *dev, enum pm_device_action action)
+static int eth_nxp_enet_device_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct nxp_enet_mac_config *config = dev->config;
 	struct nxp_enet_mac_data *data = dev->data;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	if (!device_is_ready(config->clock_dev)) {
 		return -ENODEV;

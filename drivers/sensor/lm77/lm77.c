@@ -362,11 +362,14 @@ static int lm77_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int lm77_pm_action(const struct device *dev,
-			  enum pm_device_action action)
+			  enum pm_device_action action,
+			  const struct pm_state_info *soc_state)
 {
 	const struct lm77_config *config = dev->config;
 	union lm77_reg_config creg = config->config_dt;
 	int err;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:

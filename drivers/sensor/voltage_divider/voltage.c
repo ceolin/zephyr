@@ -87,10 +87,13 @@ static const struct sensor_driver_api voltage_api = {
 	.channel_get = get,
 };
 
-static int pm_action(const struct device *dev, enum pm_device_action action)
+static int pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct voltage_config *config = dev->config;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	if (config->gpio_power.port == NULL) {
 		/* No work to do */

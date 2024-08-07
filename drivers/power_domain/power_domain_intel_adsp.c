@@ -54,10 +54,13 @@ static int pd_intel_adsp_set_power_enable(struct pg_bits *bits, bool power_enabl
 	return 0;
 }
 
-static int pd_intel_adsp_pm_action(const struct device *dev, enum pm_device_action action)
+static int pd_intel_adsp_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	struct pg_bits *reg_bits = (struct pg_bits *)dev->data;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

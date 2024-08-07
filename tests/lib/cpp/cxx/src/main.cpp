@@ -150,5 +150,5 @@ DEVICE_DT_DEFINE(DT_NODELABEL(test_dev0_boot), NULL, NULL, NULL, NULL, POST_KERN
 DEVICE_DT_DEFINE(DT_NODELABEL(test_dev1_dfr), NULL, NULL, NULL, NULL, POST_KERNEL, 33, NULL);
 
 static int fake_pm_action(const struct device *dev,
-		enum pm_device_action pm_action) { return -1; }
+		enum pm_device_action pm_action, const struct pm_state_info *soc_state) { return -1; }
 PM_DEVICE_DT_DEFINE(DT_NODELABEL(test_dev0_boot), fake_pm_action);

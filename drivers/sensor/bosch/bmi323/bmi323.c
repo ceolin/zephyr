@@ -1247,10 +1247,13 @@ static int bosch_bmi323_pm_suspend(const struct device *dev)
 #endif /* CONFIG_PM_DEVICE */
 
 #ifdef CONFIG_PM_DEVICE
-static int bosch_bmi323_pm_action(const struct device *dev, enum pm_device_action action)
+static int bosch_bmi323_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	struct bosch_bmi323_data *data = (struct bosch_bmi323_data *)dev->data;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	k_mutex_lock(&data->lock, K_FOREVER);
 

@@ -62,10 +62,13 @@ static int vcnl36825t_update(const struct i2c_dt_spec *spec, uint8_t reg_addr, u
 }
 
 #if CONFIG_PM_DEVICE
-static int vcnl36825t_pm_action(const struct device *dev, enum pm_device_action action)
+static int vcnl36825t_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct vcnl36825t_config *config = dev->config;
 	int rc;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

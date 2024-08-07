@@ -242,10 +242,13 @@ static void eth_mcux_phy_enter_reset(struct eth_context *context);
 void eth_mcux_phy_stop(struct eth_context *context);
 
 static int eth_mcux_device_pm_action(const struct device *dev,
-				     enum pm_device_action action)
+				     enum pm_device_action action,
+				     const struct pm_state_info *soc_state)
 {
 	struct eth_context *eth_ctx = dev->data;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	if (!device_is_ready(eth_ctx->clock_dev)) {
 		LOG_ERR("No CLOCK dev");

@@ -127,11 +127,14 @@ int i2c_nrfx_twi_msg_transfer(const struct device *dev, uint8_t flags,
 }
 
 #ifdef CONFIG_PM_DEVICE
-int twi_nrfx_pm_action(const struct device *dev, enum pm_device_action action)
+int twi_nrfx_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct i2c_nrfx_twi_config *config = dev->config;
 	struct i2c_nrfx_twi_common_data *data = dev->data;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

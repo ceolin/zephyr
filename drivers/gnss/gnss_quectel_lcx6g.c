@@ -271,9 +271,12 @@ static int quectel_lcx6g_turn_off(const struct device *dev)
 	return modem_pipe_close(data->uart_pipe, K_SECONDS(10));
 }
 
-static int quectel_lcx6g_pm_action(const struct device *dev, enum pm_device_action action)
+static int quectel_lcx6g_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	int ret = -ENOTSUP;
+
+	ARG_UNUSED(soc_state);
 
 	quectel_lcx6g_lock(dev);
 

@@ -410,10 +410,13 @@ static int regulator_da1469x_init(const struct device *dev)
 
 #if defined(CONFIG_PM_DEVICE)
 static int regulator_da1469x_pm_action(const struct device *dev,
-				       enum pm_device_action action)
+				       enum pm_device_action action,
+				       const struct pm_state_info *soc_state)
 {
 	const struct regulator_da1469x_config *config = dev->config;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

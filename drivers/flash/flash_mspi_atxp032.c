@@ -749,8 +749,11 @@ static int flash_mspi_atxp032_read_jedec_id(const struct device *flash, uint8_t 
 #endif /* CONFIG_FLASH_JESD216_API */
 
 #if defined(CONFIG_PM_DEVICE)
-static int flash_mspi_atxp032_pm_action(const struct device *flash, enum pm_device_action action)
+static int flash_mspi_atxp032_pm_action(const struct device *flash, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
 		acquire(flash);

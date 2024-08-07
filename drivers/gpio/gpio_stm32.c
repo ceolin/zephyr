@@ -708,8 +708,11 @@ static const struct gpio_driver_api gpio_stm32_driver = {
 
 #ifdef CONFIG_PM_DEVICE
 static int gpio_stm32_pm_action(const struct device *dev,
-				enum pm_device_action action)
+				enum pm_device_action action,
+				const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
 		return gpio_stm32_clock_request(dev, true);

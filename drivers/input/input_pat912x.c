@@ -297,11 +297,14 @@ static int pat912x_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int pat912x_pm_action(const struct device *dev,
-			     enum pm_device_action action)
+			     enum pm_device_action action,
+			     const struct pm_state_info *soc_state)
 {
 	const struct pat912x_config *cfg = dev->config;
 	uint8_t val;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:

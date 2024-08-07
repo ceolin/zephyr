@@ -103,9 +103,12 @@ static int led_pwm_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int led_pwm_pm_action(const struct device *dev,
-			     enum pm_device_action action)
+			     enum pm_device_action action,
+			     const struct pm_state_info *soc_state)
 {
 	const struct led_pwm_config *config = dev->config;
+
+	ARG_UNUSED(soc_state);
 
 	/* switch all underlying PWM devices to the new state */
 	for (size_t i = 0; i < config->num_leds; i++) {

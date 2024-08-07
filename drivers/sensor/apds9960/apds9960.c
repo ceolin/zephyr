@@ -403,10 +403,13 @@ static int apds9960_init_interrupt(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int apds9960_pm_action(const struct device *dev,
-			      enum pm_device_action action)
+			      enum pm_device_action action,
+			      const struct pm_state_info *soc_state)
 {
 	const struct apds9960_config *config = dev->config;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

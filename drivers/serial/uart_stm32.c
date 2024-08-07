@@ -2155,12 +2155,14 @@ static void uart_stm32_suspend_setup(const struct device *dev)
 }
 
 static int uart_stm32_pm_action(const struct device *dev,
-			       enum pm_device_action action)
+			       enum pm_device_action action,
+			       const struct pm_state_info *soc_state)
 {
 	const struct uart_stm32_config *config = dev->config;
 	struct uart_stm32_data *data = dev->data;
 	int err;
 
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

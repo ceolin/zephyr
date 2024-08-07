@@ -662,11 +662,14 @@ static const struct dma_driver_api dma_xec_api = {
  * possible data corruption and HW flow control device malfunctions.
  */
 static int dmac_xec_pm_action(const struct device *dev,
-			      enum pm_device_action action)
+			      enum pm_device_action action,
+			      const struct pm_state_info *soc_state)
 {
 	const struct dma_xec_config * const devcfg = dev->config;
 	struct dma_xec_regs * const regs = devcfg->regs;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

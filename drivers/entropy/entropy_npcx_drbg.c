@@ -209,8 +209,11 @@ static int entropy_npcx_drbg_resume(const struct device *dev)
 	return entropy_npcx_drbg_enable_drbg_power(ctx, true);
 }
 
-static int entropy_npcx_drbg_pm_action(const struct device *dev, enum pm_device_action action)
+static int entropy_npcx_drbg_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
 		return entropy_npcx_drbg_suspend(dev);

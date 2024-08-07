@@ -24,8 +24,11 @@ static int dummy_transfer(const struct device *dev, uint32_t cmd,
 }
 
 static int dummy_parent_pm_action(const struct device *dev,
-				  enum pm_device_action action)
+				  enum pm_device_action action,
+				  const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
 		printk("parent resuming..\n");

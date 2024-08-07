@@ -445,9 +445,12 @@ static int i2c_stm32_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 
-static int i2c_stm32_pm_action(const struct device *dev, enum pm_device_action action)
+static int i2c_stm32_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	int err;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

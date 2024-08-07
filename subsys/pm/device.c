@@ -57,7 +57,7 @@ int pm_device_action_run(const struct device *dev,
 		return -ENOTSUP;
 	}
 
-	ret = pm->action_cb(dev, action);
+	ret = pm->action_cb(dev, action, NULL);
 	if (ret < 0) {
 		/*
 		 * TURN_ON and TURN_OFF are actions triggered by a power domain
@@ -369,7 +369,7 @@ int pm_device_driver_init(const struct device *dev,
 	}
 
 	/* Run power-up logic */
-	rc = action_cb(dev, PM_DEVICE_ACTION_TURN_ON);
+	rc = action_cb(dev, PM_DEVICE_ACTION_TURN_ON, NULL);
 	if (rc != 0) {
 		return rc;
 	}
@@ -377,7 +377,7 @@ int pm_device_driver_init(const struct device *dev,
 	/* If device has no PM structure */
 	if (pm == NULL) {
 		/* Device should always be active */
-		return action_cb(dev, PM_DEVICE_ACTION_RESUME);
+		return action_cb(dev, PM_DEVICE_ACTION_RESUME, NULL);
 	}
 
 	/* If device will have PM device runtime enabled */
@@ -391,5 +391,5 @@ int pm_device_driver_init(const struct device *dev,
 	}
 
 	/* Startup into active mode */
-	return action_cb(dev, PM_DEVICE_ACTION_RESUME);
+	return action_cb(dev, PM_DEVICE_ACTION_RESUME, NULL);
 }

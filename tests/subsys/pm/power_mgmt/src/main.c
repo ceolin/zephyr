@@ -68,10 +68,12 @@ DEVICE_DT_DEFINE(DT_INST(4, test_device_pm), NULL,
  */
 
 static int device_a_pm_action(const struct device *dev,
-		enum pm_device_action pm_action)
+		enum pm_device_action pm_action,
+		const struct pm_state_info *soc_state)
 {
 	ARG_UNUSED(dev);
 	ARG_UNUSED(pm_action);
+	ARG_UNUSED(soc_state);
 
 	return 0;
 }
@@ -85,10 +87,13 @@ DEVICE_DT_DEFINE(DT_INST(0, test_device_pm), NULL,
 
 
 static int device_b_pm_action(const struct device *dev,
-		enum pm_device_action pm_action)
+		enum pm_device_action pm_action,
+		const struct pm_state_info *soc_state)
 {
 	enum pm_device_state state_a;
 	enum pm_device_state state_c;
+
+	ARG_UNUSED(soc_state);
 
 	if (!testing_device_order) {
 		return 0;
@@ -129,10 +134,11 @@ DEVICE_DT_DEFINE(DT_INST(1, test_device_pm), NULL,
 		NULL);
 
 static int device_c_pm_action(const struct device *dev,
-		enum pm_device_action pm_action)
+		enum pm_device_action pm_action, const struct pm_state_info *soc_state)
 {
 	ARG_UNUSED(dev);
 	ARG_UNUSED(pm_action);
+	ARG_UNUSED(soc_state);
 
 	return 0;
 }
@@ -153,10 +159,11 @@ static int device_init_failed(const struct device *dev)
 }
 
 static int device_d_pm_action(const struct device *dev,
-		enum pm_device_action pm_action)
+		enum pm_device_action pm_action, const struct pm_state_info *soc_state)
 {
 	ARG_UNUSED(dev);
 	ARG_UNUSED(pm_action);
+	ARG_UNUSED(soc_state);
 
 	zassert_unreachable("Entered PM handler for unready device");
 

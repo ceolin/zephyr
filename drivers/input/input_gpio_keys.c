@@ -210,12 +210,15 @@ static int gpio_keys_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int gpio_keys_pm_action(const struct device *dev,
-			       enum pm_device_action action)
+			       enum pm_device_action action,
+			       const struct pm_state_info *soc_state)
 {
 	const struct gpio_keys_config *cfg = dev->config;
 	struct gpio_keys_data *data = dev->data;
 	struct gpio_keys_pin_data *pin_data = cfg->pin_data;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:

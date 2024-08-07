@@ -442,12 +442,15 @@ static int peci_xec_transfer(const struct device *dev, struct peci_msg *msg)
 }
 
 #ifdef CONFIG_PM_DEVICE
-static int peci_xec_pm_action(const struct device *dev, enum pm_device_action action)
+static int peci_xec_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct peci_xec_config *const devcfg = dev->config;
 	struct peci_regs * const regs = devcfg->regs;
 	struct ecs_regs * const ecs_regs = (struct ecs_regs *)(DT_REG_ADDR(DT_NODELABEL(ecs)));
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

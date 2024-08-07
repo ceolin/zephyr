@@ -491,9 +491,12 @@ static int tmag5170_init_registers(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int tmag5170_pm_action(const struct device *dev,
-			      enum pm_device_action action)
+			      enum pm_device_action action,
+			      const struct pm_state_info *soc_state)
 {
 	int ret_val = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

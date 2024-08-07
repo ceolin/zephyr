@@ -167,8 +167,11 @@ static int gnss_nmea_generic_init(const struct device *dev)
 }
 
 #if CONFIG_PM_DEVICE
-static int gnss_nmea_generic_pm_action(const struct device *dev, enum pm_device_action action)
+static int gnss_nmea_generic_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
 		return gnss_nmea_generic_resume(dev);

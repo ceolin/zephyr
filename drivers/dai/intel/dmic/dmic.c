@@ -842,8 +842,11 @@ static int dai_dmic_remove_wrapper(const struct device *dev)
 	return ret;
 }
 
-static int dmic_pm_action(const struct device *dev, enum pm_device_action action)
+static int dmic_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
 		dai_dmic_remove_wrapper(dev);

@@ -833,10 +833,12 @@ static int gpio_emul_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int gpio_emul_pm_device_pm_action(const struct device *dev,
-					 enum pm_device_action action)
+					 enum pm_device_action action,
+					 const struct pm_state_info *soc_state)
 {
 	ARG_UNUSED(dev);
 	ARG_UNUSED(action);
+	ARG_UNUSED(soc_state);
 
 	return 0;
 }

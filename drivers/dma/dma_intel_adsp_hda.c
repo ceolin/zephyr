@@ -413,8 +413,11 @@ int intel_adsp_hda_dma_get_attribute(const struct device *dev, uint32_t type, ui
 }
 
 #ifdef CONFIG_PM_DEVICE
-int intel_adsp_hda_dma_pm_action(const struct device *dev, enum pm_device_action action)
+int intel_adsp_hda_dma_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
 		intel_adsp_hda_channels_init(dev);

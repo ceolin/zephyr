@@ -2546,9 +2546,12 @@ static int dai_ssp_remove(struct dai_intel_ssp *dp)
 	return 0;
 }
 
-static int ssp_pm_action(const struct device *dev, enum pm_device_action action)
+static int ssp_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	struct dai_intel_ssp *dp = (struct dai_intel_ssp *)dev->data;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:

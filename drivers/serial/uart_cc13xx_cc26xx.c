@@ -432,11 +432,14 @@ static int postNotifyFxn(unsigned int eventType, uintptr_t eventArg,
 
 #ifdef CONFIG_PM_DEVICE
 static int uart_cc13xx_cc26xx_pm_action(const struct device *dev,
-					enum pm_device_action action)
+					enum pm_device_action action,
+					const struct pm_state_info *soc_state)
 {
 	const struct uart_cc13xx_cc26xx_config *config = dev->config;
 	struct uart_cc13xx_cc26xx_data *data = dev->data;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

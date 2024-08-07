@@ -22,9 +22,11 @@ static int testing_domain_on_notitication;
 static int testing_domain_off_notitication;
 
 static int domain_pm_action(const struct device *dev,
-	enum pm_device_action action)
+	enum pm_device_action action, const struct pm_state_info *soc_state)
 {
 	int rc = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
@@ -47,9 +49,12 @@ static int domain_pm_action(const struct device *dev,
 }
 
 static int deva_pm_action(const struct device *dev,
-		     enum pm_device_action pm_action)
+		     enum pm_device_action pm_action,
+		     const struct pm_state_info *soc_state)
 {
 	ARG_UNUSED(dev);
+
+	ARG_UNUSED(soc_state);
 
 	if (testing_domain_on_notitication > 0) {
 		if (pm_action == PM_DEVICE_ACTION_TURN_ON) {
@@ -69,11 +74,13 @@ static int deva_pm_action(const struct device *dev,
  * This way we can check if the subsystem properly handled its state.
  */
 static int devb_pm_action(const struct device *dev,
-		     enum pm_device_action pm_action)
+		     enum pm_device_action pm_action,
+		     const struct pm_state_info *soc_state)
 {
 	int ret = 0;
 
 	ARG_UNUSED(dev);
+	ARG_UNUSED(soc_state);
 
 	if (testing_domain_on_notitication > 0) {
 		if (pm_action == PM_DEVICE_ACTION_TURN_ON) {

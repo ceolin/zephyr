@@ -85,10 +85,13 @@ void uart2_wui_isr(const struct device *gpio, struct gpio_callback *cb,
 }
 
 static inline int uart_it8xxx2_pm_action(const struct device *dev,
-					 enum pm_device_action action)
+					 enum pm_device_action action,
+					 const struct pm_state_info *soc_state)
 {
 	const struct uart_it8xxx2_config *const config = dev->config;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	/* Next device power state is in active. */

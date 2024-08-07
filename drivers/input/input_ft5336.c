@@ -239,13 +239,16 @@ static int ft5336_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int ft5336_pm_action(const struct device *dev,
-			    enum pm_device_action action)
+			    enum pm_device_action action,
+			    const struct pm_state_info *soc_state)
 {
 	const struct ft5336_config *config = dev->config;
 #ifndef CONFIG_INPUT_FT5336_INTERRUPT
 	struct ft5336_data *data = dev->data;
 #endif
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	if (config->reset_gpio.port == NULL) {
 		return -ENOTSUP;

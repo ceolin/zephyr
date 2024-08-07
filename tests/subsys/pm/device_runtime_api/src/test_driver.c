@@ -17,9 +17,12 @@ struct test_driver_data {
 };
 
 static int test_driver_action(const struct device *dev,
-			      enum pm_device_action action)
+			      enum pm_device_action action,
+			      const struct pm_state_info *soc_state)
 {
 	struct test_driver_data *data = dev->data;
+
+	ARG_UNUSED(soc_state);
 
 	if (!IS_ENABLED(CONFIG_TEST_PM_DEVICE_ISR_SAFE)) {
 		data->ongoing = true;

@@ -430,9 +430,12 @@ static int bmp388_get_calibration_data(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int bmp388_pm_action(const struct device *dev,
-			    enum pm_device_action action)
+			    enum pm_device_action action,
+			    const struct pm_state_info *soc_state)
 {
 	uint8_t reg_val;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

@@ -649,10 +649,13 @@ static const struct rtc_stm32_config rtc_config = {
 
 #ifdef CONFIG_PM_DEVICE
 static int rtc_stm32_pm_action(const struct device *dev,
-			       enum pm_device_action action)
+			       enum pm_device_action action,
+			       const struct pm_state_info *soc_state)
 {
 	const struct device *const clk = DEVICE_DT_GET(STM32_CLOCK_CONTROL_NODE);
 	const struct rtc_stm32_config *cfg = dev->config;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

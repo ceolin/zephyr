@@ -894,11 +894,14 @@ static int pcf8523_init(const struct device *dev)
 #define PCF8523_PM_DISABLED 7U
 
 #ifdef CONFIG_PM_DEVICE
-static int pcf8523_pm_action(const struct device *dev, enum pm_device_action action)
+static int pcf8523_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct pcf8523_config *config = dev->config;
 	uint8_t control_3;
 	int err;
+
+	ARG_UNUSED(soc_state);
 
 	if (config->pm == PCF8523_PM_DISABLED) {
 		/* Only one power supply */

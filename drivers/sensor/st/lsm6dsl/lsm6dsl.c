@@ -829,12 +829,15 @@ static int lsm6dsl_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int lsm6dsl_pm_action(const struct device *dev,
-			     enum pm_device_action action)
+			     enum pm_device_action action,
+			     const struct pm_state_info *soc_state)
 {
 	struct lsm6dsl_data *data = dev->data;
 	int ret = -EIO;
 	uint8_t accel_odr = 0;
 	uint8_t gyro_odr = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

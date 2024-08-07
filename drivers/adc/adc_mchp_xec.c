@@ -366,11 +366,14 @@ static void adc_xec_single_isr(const struct device *dev)
 
 
 #ifdef CONFIG_PM_DEVICE
-static int adc_xec_pm_action(const struct device *dev, enum pm_device_action action)
+static int adc_xec_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct adc_xec_config *const devcfg = dev->config;
 	struct adc_xec_regs * const adc_regs = devcfg->regs;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

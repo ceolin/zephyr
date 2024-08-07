@@ -137,11 +137,14 @@ static void xec_kbd_set_detect_mode(const struct device *dev, bool enabled)
 }
 
 #ifdef CONFIG_PM_DEVICE
-static int xec_kbd_pm_action(const struct device *dev, enum pm_device_action action)
+static int xec_kbd_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	struct xec_kbd_config const *cfg = dev->config;
 	struct kscan_regs *regs = cfg->regs;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	if (cfg->wakeup_source) {
 		return 0;

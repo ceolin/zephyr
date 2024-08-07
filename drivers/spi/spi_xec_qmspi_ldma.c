@@ -889,10 +889,13 @@ void qmspi_xec_isr(const struct device *dev)
 /* If the application wants the QMSPI pins to be disabled in suspend it must
  * define pinctr-1 values for each pin in the app/project DT overlay.
  */
-static int qmspi_xec_pm_action(const struct device *dev, enum pm_device_action action)
+static int qmspi_xec_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct spi_qmspi_config *devcfg = dev->config;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

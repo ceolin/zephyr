@@ -85,9 +85,12 @@ static int ds2484_configure(const struct device *dev, enum w1_settings_type type
 }
 
 #ifdef CONFIG_PM_DEVICE
-static int ds2484_pm_control(const struct device *dev, enum pm_device_action action)
+static int ds2484_pm_control(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct ds2484_config *config = dev->config;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:

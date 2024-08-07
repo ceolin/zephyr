@@ -784,12 +784,15 @@ struct ec_host_cmd_backend *ec_host_cmd_backend_get_spi(struct gpio_dt_spec *cs)
 
 #ifdef CONFIG_PM_DEVICE
 static int ec_host_cmd_spi_stm32_pm_action(const struct device *dev,
-					   enum pm_device_action action)
+					   enum pm_device_action action,
+					   const struct pm_state_info *soc_state)
 {
 	const struct ec_host_cmd_backend *backend = (struct ec_host_cmd_backend *)dev->data;
 	struct ec_host_cmd_spi_ctx *hc_spi = (struct ec_host_cmd_spi_ctx *)backend->ctx;
 	const struct ec_host_cmd_spi_cfg *cfg = hc_spi->spi_config;
 	int err;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

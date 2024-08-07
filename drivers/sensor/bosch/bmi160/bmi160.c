@@ -1165,9 +1165,12 @@ int bmi160_init(const struct device *dev)
 	return 0;
 }
 
-int bmi160_pm(const struct device *dev, enum pm_device_action action)
+int bmi160_pm(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

@@ -1889,7 +1889,8 @@ static void wait_for_tx_stopped(const struct device *dev)
 
 
 static int uarte_nrfx_pm_action(const struct device *dev,
-				enum pm_device_action action)
+				enum pm_device_action action,
+				const struct pm_state_info *soc_state)
 {
 	NRF_UARTE_Type *uarte = get_uarte_instance(dev);
 #if defined(UARTE_ANY_ASYNC) || defined(UARTE_INTERRUPT_DRIVEN)
@@ -1897,6 +1898,8 @@ static int uarte_nrfx_pm_action(const struct device *dev,
 #endif
 	const struct uarte_nrfx_config *cfg = dev->config;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 #ifdef UARTE_ANY_ASYNC
 	/* If low power mode for asynchronous mode is used then there is nothing to do here.

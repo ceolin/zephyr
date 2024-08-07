@@ -345,12 +345,15 @@ static const struct sensor_driver_api tsl2540_driver_api = {
 };
 
 #ifdef CONFIG_PM_DEVICE
-static int tsl2540_pm_action(const struct device *dev, enum pm_device_action action)
+static int tsl2540_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 
 	const struct tsl2540_config *cfg = dev->config;
 	struct tsl2540_data *data = dev->data;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

@@ -1511,10 +1511,13 @@ const static struct cellular_driver_api modem_cellular_api = {
 };
 
 #ifdef CONFIG_PM_DEVICE
-static int modem_cellular_pm_action(const struct device *dev, enum pm_device_action action)
+static int modem_cellular_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	struct modem_cellular_data *data = (struct modem_cellular_data *)dev->data;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

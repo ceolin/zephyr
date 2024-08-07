@@ -479,11 +479,14 @@ static int fdc2x1x_set_shutdown(const struct device *dev, bool enable)
  * @return 0 in case of success, negative error code otherwise.
  */
 static int fdc2x1x_device_pm_action(const struct device *dev,
-				    enum pm_device_action action)
+				    enum pm_device_action action,
+				    const struct pm_state_info *soc_state)
 {
 	int ret;
 	const struct fdc2x1x_config *cfg = dev->config;
 	enum pm_device_state curr_state;
+
+	ARG_UNUSED(soc_state);
 
 	(void)pm_device_state_get(dev, &curr_state);
 

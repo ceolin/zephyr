@@ -1272,11 +1272,14 @@ static int mspi_ambiq_register_callback(const struct device *controller,
 }
 
 #if CONFIG_PM_DEVICE
-static int mspi_ambiq_pm_action(const struct device *controller, enum pm_device_action action)
+static int mspi_ambiq_pm_action(const struct device *controller, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct mspi_ambiq_config *cfg = controller->config;
 	struct mspi_ambiq_data *data = controller->data;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	if (mspi_is_inp(controller)) {
 		return -EBUSY;

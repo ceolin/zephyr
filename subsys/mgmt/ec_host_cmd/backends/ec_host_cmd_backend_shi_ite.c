@@ -466,10 +466,13 @@ static int shi_ite_backend_init(const struct ec_host_cmd_backend *backend,
 PINCTRL_DT_INST_DEFINE(0);
 
 #ifdef CONFIG_PM_DEVICE
-static int shi_ite_pm_cb(const struct device *dev, enum pm_device_action action)
+static int shi_ite_pm_cb(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	struct shi_it8xxx2_data *data = dev->data;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:

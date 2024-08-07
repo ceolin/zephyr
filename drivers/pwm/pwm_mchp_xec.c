@@ -374,12 +374,15 @@ static int pwm_xec_get_cycles_per_sec(const struct device *dev,
 }
 
 #ifdef CONFIG_PM_DEVICE
-static int pwm_xec_pm_action(const struct device *dev, enum pm_device_action action)
+static int pwm_xec_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct pwm_xec_config *const devcfg = dev->config;
 	struct pwm_regs * const regs = devcfg->regs;
 	struct pwm_xec_data * const data = dev->data;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

@@ -126,12 +126,15 @@ static void tach_xec_sleep_clr(const struct device *dev)
 }
 
 #ifdef CONFIG_PM_DEVICE
-static int tach_xec_pm_action(const struct device *dev, enum pm_device_action action)
+static int tach_xec_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct tach_xec_config * const cfg = dev->config;
 	struct tach_xec_data * const data = dev->data;
 	struct tach_regs * const tach = cfg->regs;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

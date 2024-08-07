@@ -201,9 +201,12 @@ static void gnss_emul_suspend(const struct device *dev)
 	gnss_emul_clear_fix_timestamp(dev);
 }
 
-static int gnss_emul_pm_action(const struct device *dev, enum pm_device_action action)
+static int gnss_emul_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	gnss_emul_lock(dev);
 

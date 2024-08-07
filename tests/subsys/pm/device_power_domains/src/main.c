@@ -17,10 +17,12 @@ static int dev_init(const struct device *dev)
 	return 0;
 }
 
-int dev_pm_control(const struct device *dev, enum pm_device_action action)
+int dev_pm_control(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	ARG_UNUSED(dev);
 	ARG_UNUSED(action);
+	ARG_UNUSED(soc_state);
 
 	return 0;
 }

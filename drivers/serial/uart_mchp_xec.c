@@ -456,11 +456,13 @@ static void uart_xec_wake_handler(const struct device *gpio, struct gpio_callbac
 }
 
 static int uart_xec_pm_action(const struct device *dev,
-					 enum pm_device_action action)
+		enum pm_device_action action, const struct pm_state_info *soc_state)
 {
 	const struct uart_xec_device_config * const dev_cfg = dev->config;
 	struct uart_regs *regs = dev_cfg->regs;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

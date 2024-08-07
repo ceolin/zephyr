@@ -1288,9 +1288,12 @@ static int qspi_resume(const struct device *dev)
 }
 
 static int qspi_nor_pm_action(const struct device *dev,
-			      enum pm_device_action action)
+			      enum pm_device_action action,
+			      const struct pm_state_info *soc_state)
 {
 	int rc;
+
+	ARG_UNUSED(soc_state);
 
 	if (pm_device_is_busy(dev)) {
 		return -EBUSY;

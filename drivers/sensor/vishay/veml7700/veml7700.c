@@ -516,9 +516,12 @@ static int veml7700_channel_get(const struct device *dev, enum sensor_channel ch
 
 #ifdef CONFIG_PM_DEVICE
 
-static int veml7700_pm_action(const struct device *dev, enum pm_device_action action)
+static int veml7700_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct veml7700_config *conf = dev->config;
+
+	ARG_UNUSED(soc_state);
 
 	if (conf->psm != VEML7700_PSM_DISABLED) {
 		switch (action) {

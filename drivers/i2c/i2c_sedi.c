@@ -150,9 +150,12 @@ static int i2c_sedi_resume_device_from_suspend(const struct device *dev)
 	return 0;
 }
 
-static int i2c_sedi_pm_action(const struct device *dev, enum pm_device_action action)
+static int i2c_sedi_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:

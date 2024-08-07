@@ -693,10 +693,13 @@ static int uart_disable(const struct device *dev)
 }
 
 static int uart_smartbond_pm_action(const struct device *dev,
-				enum pm_device_action action)
+				enum pm_device_action action,
+				const struct pm_state_info *soc_state)
 {
 	const struct uart_smartbond_cfg *config;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

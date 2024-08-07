@@ -183,10 +183,13 @@ static int vcnl4040_reg_setup(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int vcnl4040_pm_action(const struct device *dev,
-			      enum pm_device_action action)
+			      enum pm_device_action action,
+			      const struct pm_state_info *soc_state)
 {
 	int ret = 0;
 	uint16_t ps_conf;
+
+	ARG_UNUSED(soc_state);
 
 	ret = vcnl4040_read(dev, VCNL4040_REG_PS_CONF, &ps_conf);
 	if (ret < 0)

@@ -116,10 +116,13 @@ static int lp5569_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int lp5569_pm_action(const struct device *dev,
-			    enum pm_device_action action)
+			    enum pm_device_action action,
+			    const struct pm_state_info *soc_state)
 {
 	const struct lp5569_config *config = dev->config;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_TURN_ON:

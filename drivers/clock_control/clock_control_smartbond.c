@@ -610,8 +610,11 @@ static const struct clock_control_driver_api smartbond_clock_control_api = {
 };
 
 #if CONFIG_PM_DEVICE
-static int smartbond_clocks_pm_action(const struct device *dev, enum pm_device_action action)
+static int smartbond_clocks_pm_action(const struct device *dev, enum pm_device_action action,
+	 	const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
 		break;

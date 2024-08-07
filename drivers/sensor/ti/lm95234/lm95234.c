@@ -288,8 +288,11 @@ static int lm95234_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 
-static int lm95234_pm_action(const struct device *dev, enum pm_device_action action)
+static int lm95234_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_TURN_ON:
 	case PM_DEVICE_ACTION_RESUME:

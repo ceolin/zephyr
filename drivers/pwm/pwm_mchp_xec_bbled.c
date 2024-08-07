@@ -266,12 +266,15 @@ static int pwm_bbled_xec_set_cycles(const struct device *dev, uint32_t channel,
 
 
 #ifdef CONFIG_PM_DEVICE
-static int pwm_bbled_xec_pm_action(const struct device *dev, enum pm_device_action action)
+static int pwm_bbled_xec_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct pwm_bbled_xec_config *const devcfg = dev->config;
 	struct bbled_regs * const regs = devcfg->regs;
 	struct bbled_xec_data * const data = dev->data;
 	int ret = 0;
+
+	ARG_UNUSED(soc_state);
 
 	/* 32K core clock is not gated by PCR in sleep, so BBLED can blink the LED even
 	 * in sleep, if it is configured to use 32K clock. If we want to control it

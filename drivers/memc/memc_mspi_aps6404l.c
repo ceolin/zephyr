@@ -246,8 +246,11 @@ static int memc_mspi_aps6404l_half_sleep_exit(const struct device *psram)
 	return ret;
 }
 
-static int memc_mspi_aps6404l_pm_action(const struct device *psram, enum pm_device_action action)
+static int memc_mspi_aps6404l_pm_action(const struct device *psram, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
 		acquire(psram);

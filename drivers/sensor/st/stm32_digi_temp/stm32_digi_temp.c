@@ -222,11 +222,14 @@ static int stm32_digi_temp_init(const struct device *dev)
 }
 
 #ifdef CONFIG_PM_DEVICE
-static int stm32_digi_temp_pm_action(const struct device *dev, enum pm_device_action action)
+static int stm32_digi_temp_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct stm32_digi_temp_config *cfg = dev->config;
 	const struct device *const clk = DEVICE_DT_GET(STM32_CLOCK_CONTROL_NODE);
 	int err;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

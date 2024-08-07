@@ -9,6 +9,7 @@
 
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
+#include <zephyr/pm/state.h>
 #include <zephyr/sys/atomic.h>
 #include <zephyr/sys/iterable_sections.h>
 
@@ -123,13 +124,19 @@ enum pm_device_action {
  *
  * @param dev Device instance.
  * @param action Requested action.
+ * @param info The power state that the system is going to sleep in or
+ *             the one that the system is waking up from. It is only
+ *             used with the actions PM_DEVICE_ACTION_SUSPEND and
+ *             PM_DEVICE_ACTION_RESUME.
+ *
  *
  * @retval 0 If successful.
  * @retval -ENOTSUP If the requested action is not supported.
  * @retval Errno Other negative errno on failure.
  */
 typedef int (*pm_device_action_cb_t)(const struct device *dev,
-				     enum pm_device_action action);
+				     enum pm_device_action action,
+				     const struct pm_state_info *soc_state);
 
 /**
  * @brief Device PM action failed callback
@@ -729,12 +736,12 @@ static inline int pm_device_driver_init(const struct device *dev, pm_device_acti
 	int rc;
 
 	/* When power management is not enabled, all drivers should initialise to active state */
-	rc = action_cb(dev, PM_DEVICE_ACTION_TURN_ON);
+	rc = action_cb(dev, PM_DEVICE_ACTION_TURN_ON, NULL);
 	if (rc < 0) {
 		return rc;
 	}
 
-	rc = action_cb(dev, PM_DEVICE_ACTION_RESUME);
+	rc = action_cb(dev, PM_DEVICE_ACTION_RESUME, NULL);
 	if (rc < 0) {
 		return rc;
 	}

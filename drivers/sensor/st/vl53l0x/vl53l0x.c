@@ -350,10 +350,13 @@ static int vl53l0x_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int vl53l0x_pm_action(const struct device *dev,
-			     enum pm_device_action action)
+			     enum pm_device_action action,
+			     const struct pm_state_info *soc_state)
 {
 	const struct vl53l0x_config *const config = dev->config;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

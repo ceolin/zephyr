@@ -1434,9 +1434,12 @@ static int spi_nor_configure(const struct device *dev)
 	return 0;
 }
 
-static int spi_nor_pm_control(const struct device *dev, enum pm_device_action action)
+static int spi_nor_pm_control(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	int rc = 0;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 #ifdef CONFIG_SPI_NOR_IDLE_IN_DPD

@@ -48,7 +48,8 @@ static int pd_on_domain_visitor(const struct device *dev, void *context)
 #endif
 
 static int pd_gpio_pm_action(const struct device *dev,
-			     enum pm_device_action action)
+			     enum pm_device_action action,
+			     const struct pm_state_info *soc_state)
 {
 #ifdef CONFIG_PM_DEVICE_POWER_DOMAIN
 	struct pd_visitor_context context = {.domain = dev};
@@ -57,6 +58,8 @@ static int pd_gpio_pm_action(const struct device *dev,
 	struct pd_gpio_data *data = dev->data;
 	int64_t next_boot_ticks;
 	int rc = 0;
+
+	ARG_UNUSED(soc_state);
 
 	/* Validate that blocking API's can be used */
 	if (!k_can_yield()) {

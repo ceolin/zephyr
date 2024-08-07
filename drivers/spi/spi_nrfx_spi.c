@@ -332,11 +332,14 @@ static const struct spi_driver_api spi_nrfx_driver_api = {
 
 #ifdef CONFIG_PM_DEVICE
 static int spi_nrfx_pm_action(const struct device *dev,
-			      enum pm_device_action action)
+			      enum pm_device_action action,
+			      const struct pm_state_info *soc_state)
 {
 	int ret = 0;
 	struct spi_nrfx_data *dev_data = dev->data;
 	const struct spi_nrfx_config *dev_config = dev->config;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

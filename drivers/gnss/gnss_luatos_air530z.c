@@ -242,11 +242,14 @@ static int luatos_air530z_pm_resume(const struct device *dev)
 	return 0;
 }
 
-static int luatos_air530z_pm_action(const struct device *dev, enum pm_device_action action)
+static int luatos_air530z_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	struct gnss_luatos_air530z_data *data = dev->data;
 	const struct gnss_luatos_air530z_config *config = dev->config;
 	int ret = -ENOTSUP;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:

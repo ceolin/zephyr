@@ -707,7 +707,8 @@ static int entropy_stm32_rng_init(const struct device *dev)
 
 #ifdef CONFIG_PM_DEVICE
 static int entropy_stm32_rng_pm_action(const struct device *dev,
-				       enum pm_device_action action)
+				       enum pm_device_action action,
+				       const struct pm_state_info *soc_state)
 {
 	struct entropy_stm32_rng_dev_data *dev_data = dev->data;
 
@@ -715,6 +716,7 @@ static int entropy_stm32_rng_pm_action(const struct device *dev,
 
 	/* Remove warning on some platforms */
 	ARG_UNUSED(dev_data);
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:

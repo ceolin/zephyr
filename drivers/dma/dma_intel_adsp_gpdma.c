@@ -457,8 +457,11 @@ int intel_adsp_gpdma_init(const struct device *dev)
 #endif
 }
 #ifdef CONFIG_PM_DEVICE
-static int gpdma_pm_action(const struct device *dev, enum pm_device_action action)
+static int gpdma_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
 		return intel_adsp_gpdma_power_on(dev);

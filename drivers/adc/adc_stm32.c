@@ -1568,8 +1568,11 @@ static int adc_stm32_suspend_setup(const struct device *dev)
 }
 
 static int adc_stm32_pm_action(const struct device *dev,
-			       enum pm_device_action action)
+			       enum pm_device_action action,
+			       const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
 		return adc_stm32_init(dev);

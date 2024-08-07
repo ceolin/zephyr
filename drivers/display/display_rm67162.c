@@ -554,11 +554,14 @@ static int rm67162_set_orientation(const struct device *dev,
 #ifdef CONFIG_PM_DEVICE
 
 static int rm67162_pm_action(const struct device *dev,
-			     enum pm_device_action action)
+			     enum pm_device_action action,
+			     const struct pm_state_info *soc_state)
 {
 	const struct rm67162_config *config = dev->config;
 	struct rm67162_data *data = dev->data;
 	struct mipi_dsi_device mdev = {0};
+
+	ARG_UNUSED(soc_state);
 
 	mdev.data_lanes = config->num_of_lanes;
 	mdev.pixfmt = data->pixel_format;

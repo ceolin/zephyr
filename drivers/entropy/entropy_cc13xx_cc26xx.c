@@ -260,9 +260,12 @@ static int post_notify_fxn(unsigned int eventType, uintptr_t eventArg,
 
 #ifdef CONFIG_PM_DEVICE
 static int entropy_cc13xx_cc26xx_pm_action(const struct device *dev,
-					   enum pm_device_action action)
+					   enum pm_device_action action,
+					   const struct pm_state_info *soc_state)
 {
 	struct entropy_cc13xx_cc26xx_data *data = dev->data;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

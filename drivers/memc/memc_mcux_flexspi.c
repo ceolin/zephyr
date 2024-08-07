@@ -364,10 +364,13 @@ FSL_FEATURE_FLEXSPI_SUPPORT_SEPERATE_RXCLKSRC_PORTB
 }
 
 #ifdef CONFIG_PM_DEVICE
-static int memc_flexspi_pm_action(const struct device *dev, enum pm_device_action action)
+static int memc_flexspi_pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	struct memc_flexspi_data *data = dev->data;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

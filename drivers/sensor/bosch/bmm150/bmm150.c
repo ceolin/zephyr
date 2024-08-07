@@ -624,9 +624,12 @@ err_poweroff:
 }
 
 #ifdef CONFIG_PM_DEVICE
-static int pm_action(const struct device *dev, enum pm_device_action action)
+static int pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:

@@ -76,10 +76,13 @@ static const struct sensor_driver_api current_api = {
 };
 
 #ifdef CONFIG_PM_DEVICE
-static int pm_action(const struct device *dev, enum pm_device_action action)
+static int pm_action(const struct device *dev, enum pm_device_action action,
+		const struct pm_state_info *soc_state)
 {
 	const struct current_sense_amplifier_dt_spec *config = dev->config;
 	int ret;
+
+	ARG_UNUSED(soc_state);
 
 	if (config->power_gpio.port == NULL) {
 		LOG_ERR("PM not supported");

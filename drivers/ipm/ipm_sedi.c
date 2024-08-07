@@ -254,8 +254,13 @@ static int ipm_sedi_set_enable(const struct device *dev, int enable)
 
 #if defined(CONFIG_PM_DEVICE)
 static int ipm_power_ctrl(const struct device *dev,
-			  enum pm_device_action action)
+			  enum pm_device_action action,
+			  const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(dev);
+	ARG_UNUSED(action);
+	ARG_UNUSED(soc_state);
+
 	return 0;
 }
 #endif
