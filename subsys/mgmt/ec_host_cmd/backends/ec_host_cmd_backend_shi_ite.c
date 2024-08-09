@@ -476,9 +476,13 @@ static int shi_ite_pm_cb(const struct device *dev, enum pm_device_action action,
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		shi_ite_set_state(data, SHI_STATE_DISABLED);
 		break;
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		shi_ite_set_state(data, SHI_STATE_READY_TO_RECV);
 		break;
 	default:

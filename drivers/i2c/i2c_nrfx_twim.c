@@ -303,6 +303,8 @@ static int twim_nrfx_pm_action(const struct device *dev,
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		ret = pinctrl_apply_state(dev_config->pcfg,
 					  PINCTRL_STATE_DEFAULT);
 		if (ret < 0) {
@@ -312,6 +314,8 @@ static int twim_nrfx_pm_action(const struct device *dev,
 		break;
 
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		nrfx_twim_disable(&dev_config->twim);
 
 		ret = pinctrl_apply_state(dev_config->pcfg,

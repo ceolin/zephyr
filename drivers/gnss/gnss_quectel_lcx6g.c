@@ -282,10 +282,14 @@ static int quectel_lcx6g_pm_action(const struct device *dev, enum pm_device_acti
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		ret = quectel_lcx6g_suspend(dev);
 		break;
 
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		ret = quectel_lcx6g_resume(dev);
 		break;
 

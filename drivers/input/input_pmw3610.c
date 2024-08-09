@@ -537,12 +537,16 @@ static int pmw3610_pm_action(const struct device *dev,
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		ret = pmw3610_write_reg(dev, PMW3610_SHUTDOWN, SHUTDOWN_ENABLE);
 		if (ret < 0) {
 			return ret;
 		}
 		break;
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		ret = pmw3610_write_reg(dev, PMW3610_POWER_UP_RESET, POWER_UP_WAKEUP);
 		if (ret < 0) {
 			return ret;

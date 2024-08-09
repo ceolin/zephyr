@@ -311,10 +311,14 @@ static int analog_axis_pm_action(const struct device *dev,
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		atomic_set(&data->suspended, 1);
 		k_timer_stop(&data->timer);
 		break;
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		k_timer_start(&data->timer,
 			      K_MSEC(cfg->poll_period_ms),
 			      K_MSEC(cfg->poll_period_ms));

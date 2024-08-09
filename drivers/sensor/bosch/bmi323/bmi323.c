@@ -1259,11 +1259,15 @@ static int bosch_bmi323_pm_action(const struct device *dev, enum pm_device_actio
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		ret = bosch_bmi323_pm_resume(dev);
 
 		break;
 
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		ret = bosch_bmi323_pm_suspend(dev);
 
 		break;

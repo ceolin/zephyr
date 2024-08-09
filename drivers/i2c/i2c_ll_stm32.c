@@ -454,9 +454,13 @@ static int i2c_stm32_pm_action(const struct device *dev, enum pm_device_action a
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		err = i2c_stm32_activate(dev);
 		break;
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		err = i2c_stm32_suspend(dev);
 		break;
 	default:

@@ -392,8 +392,9 @@ static int lm75_pm_action(const struct device *dev, enum pm_device_action action
 	switch (action) {
 	case PM_DEVICE_ACTION_TURN_ON:
 	case PM_DEVICE_ACTION_RESUME:
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 	case PM_DEVICE_ACTION_TURN_OFF:
-	case PM_DEVICE_ACTION_SUSPEND:
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		break;
 	default:
 		return -ENOTSUP;

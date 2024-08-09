@@ -608,10 +608,10 @@ static int i2c_smartbond_pm_action(const struct device *dev,
 	ARG_UNUSED(soc_state);
 
 	switch (action) {
-	case PM_DEVICE_ACTION_RESUME:
-#ifdef CONFIG_PM_DEVICE_RUNTIME
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		i2c_smartbond_pm_prevent_system_sleep();
-#endif
+		__fallthrough;
+	case PM_DEVICE_ACTION_RESUME:
 		/*
 		 * Although the GPIO driver should already be initialized, make sure PD_COM
 		 * is up and running before accessing the I2C block.
@@ -626,9 +626,15 @@ static int i2c_smartbond_pm_action(const struct device *dev,
 		 * be released, as well.
 		 */
 		da1469x_pd_release(MCU_PD_DOMAIN_COM);
-#ifdef CONFIG_PM_DEVICE_RUNTIME
+		break;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
+		ret = i2c_smartbond_suspend(dev);
+		/*
+		 * Once the I2C block is turned off its power domain can
+		 * be released, as well.
+		 */
+		da1469x_pd_release(MCU_PD_DOMAIN_COM);
 		i2c_smartbond_pm_allow_system_sleep();
-#endif
 		break;
 	default:
 		return -ENOTSUP;

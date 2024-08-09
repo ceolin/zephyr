@@ -256,6 +256,8 @@ static int ft5336_pm_action(const struct device *dev,
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		ret = i2c_reg_write_byte_dt(&config->bus,
 					    REG_G_PMODE, PMOD_HIBERNATE);
 		if (ret < 0) {
@@ -267,6 +269,8 @@ static int ft5336_pm_action(const struct device *dev,
 #endif
 		break;
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		ret = gpio_pin_set_dt(&config->reset_gpio, 1);
 		if (ret < 0) {
 			return ret;

@@ -1194,10 +1194,14 @@ static int spi_smartbond_pm_action(const struct device *dev,
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		da1469x_pd_acquire(MCU_PD_DOMAIN_COM);
 		ret = spi_smartbond_resume(dev);
 		break;
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		ret = spi_smartbond_suspend(dev);
 		da1469x_pd_release(MCU_PD_DOMAIN_COM);
 		break;

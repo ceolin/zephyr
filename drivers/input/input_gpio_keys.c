@@ -222,6 +222,8 @@ static int gpio_keys_pm_action(const struct device *dev,
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		atomic_set(&data->suspended, 1);
 
 		for (int i = 0; i < cfg->num_keys; i++) {
@@ -244,6 +246,8 @@ static int gpio_keys_pm_action(const struct device *dev,
 
 		return 0;
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		atomic_set(&data->suspended, 0);
 
 		for (int i = 0; i < cfg->num_keys; i++) {

@@ -702,10 +702,10 @@ static int uart_smartbond_pm_action(const struct device *dev,
 	ARG_UNUSED(soc_state);
 
 	switch (action) {
-	case PM_DEVICE_ACTION_RESUME:
-#ifdef CONFIG_PM_DEVICE_RUNTIME
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		uart_smartbond_pm_prevent_system_sleep();
-#endif
+		__fallthrough;
+	case PM_DEVICE_ACTION_RESUME:
 		da1469x_pd_acquire(MCU_PD_DOMAIN_COM);
 		apply_runtime_config(dev);
 		break;
@@ -717,9 +717,16 @@ static int uart_smartbond_pm_action(const struct device *dev,
 							      GPIO_INT_MODE_EDGE |
 							      GPIO_INT_TRIG_LOW);
 		}
-#ifdef CONFIG_PM_DEVICE_RUNTIME
+		break;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
+		config = dev->config;
+		ret = uart_disable(dev);
+		if (ret == 0 && config->rx_wake_gpio.port != NULL) {
+			ret = gpio_pin_interrupt_configure_dt(&config->rx_wake_gpio,
+							      GPIO_INT_MODE_EDGE |
+							      GPIO_INT_TRIG_LOW);
+		}
 		uart_smartbond_pm_allow_system_sleep();
-#endif
 		break;
 	default:
 		ret = -ENOTSUP;

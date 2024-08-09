@@ -442,8 +442,12 @@ static int counter_smartbond_pm_action(const struct device *dev, enum pm_device_
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		break;
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		counter_smartbond_resume(dev);
 		break;
 	default:

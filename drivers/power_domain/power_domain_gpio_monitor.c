@@ -83,6 +83,8 @@ static int pd_gpio_monitor_pm_action(const struct device *dev, enum pm_device_ac
 	case PM_DEVICE_ACTION_TURN_OFF:
 		return -ENOTSUP;
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		if (!data->is_powered) {
 			return -EAGAIN;
 		}

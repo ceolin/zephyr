@@ -1050,9 +1050,13 @@ static int shi_npcx_pm_cb(const struct device *dev, enum pm_device_action action
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		shi_npcx_disable(dev);
 		break;
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		shi_npcx_enable(dev);
 		break;
 	default:

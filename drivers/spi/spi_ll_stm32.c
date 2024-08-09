@@ -1254,6 +1254,8 @@ static int spi_stm32_pm_action(const struct device *dev,
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		if (!spi_stm32_is_subghzspi(dev)) {
 			/* Set pins to active state */
 			err = pinctrl_apply_state(config->pcfg, PINCTRL_STATE_DEFAULT);
@@ -1270,6 +1272,8 @@ static int spi_stm32_pm_action(const struct device *dev,
 		}
 		break;
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		/* Stop device clock. */
 		err = clock_control_off(clk, (clock_control_subsys_t)&config->pclken[0]);
 		if (err != 0) {

@@ -82,7 +82,7 @@ static int runtime_suspend(const struct device *dev, bool async,
 		(void)k_work_schedule(&pm->work, delay);
 	} else {
 		/* suspend now */
-		ret = pm->base.action_cb(pm->dev, PM_DEVICE_ACTION_SUSPEND, NULL);
+		ret = pm->base.action_cb(pm->dev, PM_DEVICE_ACTION_RUNTIME_SUSPEND, NULL);
 		if (ret < 0) {
 			pm->base.usage++;
 			goto unlock;
@@ -105,7 +105,7 @@ static void runtime_suspend_work(struct k_work *work)
 	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
 	struct pm_device *pm = CONTAINER_OF(dwork, struct pm_device, work);
 
-	ret = pm->base.action_cb(pm->dev, PM_DEVICE_ACTION_SUSPEND, NULL);
+	ret = pm->base.action_cb(pm->dev, PM_DEVICE_ACTION_RUNTIME_SUSPEND, NULL);
 
 	(void)k_sem_take(&pm->lock, K_FOREVER);
 	if (ret < 0) {
@@ -149,7 +149,7 @@ static int get_sync_locked(const struct device *dev)
 			}
 		}
 
-		ret = pm->base.action_cb(dev, PM_DEVICE_ACTION_RESUME, NULL);
+		ret = pm->base.action_cb(dev, PM_DEVICE_ACTION_RUNTIME_RESUME, NULL);
 		if (ret < 0) {
 			return ret;
 		}
@@ -255,7 +255,7 @@ int pm_device_runtime_get(const struct device *dev)
 		goto unlock;
 	}
 
-	ret = pm->base.action_cb(pm->dev, PM_DEVICE_ACTION_RESUME, NULL);
+	ret = pm->base.action_cb(pm->dev, PM_DEVICE_ACTION_RUNTIME_RESUME, NULL);
 	if (ret < 0) {
 		pm->base.usage--;
 		goto unlock;
@@ -291,7 +291,7 @@ static int put_sync_locked(const struct device *dev)
 
 	pm->base.usage--;
 	if (pm->base.usage == 0U) {
-		ret = pm->base.action_cb(dev, PM_DEVICE_ACTION_SUSPEND, NULL);
+		ret = pm->base.action_cb(dev, PM_DEVICE_ACTION_RUNTIME_SUSPEND, NULL);
 		if (ret < 0) {
 			return ret;
 		}
@@ -389,7 +389,7 @@ static int runtime_enable_sync(const struct device *dev)
 	k_spinlock_key_t k = k_spin_lock(&pm->lock);
 
 	if (pm->base.state == PM_DEVICE_STATE_ACTIVE) {
-		ret = pm->base.action_cb(dev, PM_DEVICE_ACTION_SUSPEND, NULL);
+		ret = pm->base.action_cb(dev, PM_DEVICE_ACTION_RUNTIME_SUSPEND, NULL);
 		if (ret < 0) {
 			goto unlock;
 		}
@@ -443,7 +443,7 @@ int pm_device_runtime_enable(const struct device *dev)
 	}
 
 	if (pm->base.state == PM_DEVICE_STATE_ACTIVE) {
-		ret = pm->base.action_cb(pm->dev, PM_DEVICE_ACTION_SUSPEND, NULL);
+		ret = pm->base.action_cb(pm->dev, PM_DEVICE_ACTION_RUNTIME_SUSPEND, NULL);
 		if (ret < 0) {
 			goto unlock;
 		}
@@ -471,7 +471,7 @@ static int runtime_disable_sync(const struct device *dev)
 	k_spinlock_key_t k = k_spin_lock(&pm->lock);
 
 	if (pm->base.state == PM_DEVICE_STATE_SUSPENDED) {
-		ret = pm->base.action_cb(dev, PM_DEVICE_ACTION_RESUME, NULL);
+		ret = pm->base.action_cb(dev, PM_DEVICE_ACTION_RUNTIME_RESUME, NULL);
 		if (ret < 0) {
 			goto unlock;
 		}
@@ -532,7 +532,7 @@ int pm_device_runtime_disable(const struct device *dev)
 
 	/* wake up the device if suspended */
 	if (pm->base.state == PM_DEVICE_STATE_SUSPENDED) {
-		ret = pm->base.action_cb(dev, PM_DEVICE_ACTION_RESUME, NULL);
+		ret = pm->base.action_cb(dev, PM_DEVICE_ACTION_RUNTIME_RESUME, NULL);
 		if (ret < 0) {
 			goto unlock;
 		}

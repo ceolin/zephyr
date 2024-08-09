@@ -30,10 +30,14 @@ static int domain_pm_action(const struct device *dev,
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		/* Switch power on */
 		pm_device_children_action_run(dev, PM_DEVICE_ACTION_TURN_ON, NULL);
 		break;
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		pm_device_children_action_run(dev, PM_DEVICE_ACTION_TURN_OFF, NULL);
 		break;
 	case PM_DEVICE_ACTION_TURN_ON:

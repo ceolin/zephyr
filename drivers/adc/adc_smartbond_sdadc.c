@@ -356,9 +356,13 @@ static int sdadc_smartbond_pm_action(const struct device *dev,
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		ret = sdadc_smartbond_resume(dev);
 		break;
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		ret = sdadc_smartbond_suspend(dev);
 		break;
 	default:

@@ -30,10 +30,10 @@ static int dummy_parent_pm_action(const struct device *dev,
 	ARG_UNUSED(soc_state);
 
 	switch (action) {
-	case PM_DEVICE_ACTION_RESUME:
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		printk("parent resuming..\n");
 		break;
-	case PM_DEVICE_ACTION_SUSPEND:
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		printk("parent suspending..\n");
 		break;
 	default:

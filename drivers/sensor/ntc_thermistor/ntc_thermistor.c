@@ -122,7 +122,9 @@ static int ntc_thermistor_pm_action(const struct device *dev, enum pm_device_act
 	switch (action) {
 	case PM_DEVICE_ACTION_TURN_ON:
 	case PM_DEVICE_ACTION_RESUME:
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 	case PM_DEVICE_ACTION_TURN_OFF:
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 	case PM_DEVICE_ACTION_SUSPEND:
 		return 0;
 	default:

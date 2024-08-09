@@ -715,8 +715,12 @@ static int gpio_stm32_pm_action(const struct device *dev,
 
 	switch (action) {
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		return gpio_stm32_clock_request(dev, true);
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		return gpio_stm32_clock_request(dev, false);
 	default:
 		return -ENOTSUP;

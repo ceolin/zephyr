@@ -849,9 +849,13 @@ static int dmic_pm_action(const struct device *dev, enum pm_device_action action
 
 	switch (action) {
 	case PM_DEVICE_ACTION_SUSPEND:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_SUSPEND:
 		dai_dmic_remove_wrapper(dev);
 		break;
 	case PM_DEVICE_ACTION_RESUME:
+		__fallthrough;
+	case PM_DEVICE_ACTION_RUNTIME_RESUME:
 		dai_dmic_probe_wrapper(dev);
 		break;
 	case PM_DEVICE_ACTION_TURN_OFF:
