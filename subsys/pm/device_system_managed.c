@@ -24,7 +24,10 @@ TYPE_SECTION_START_EXTERN(const struct device *, pm_device_slots);
 /* Number of devices successfully suspended. */
 static size_t num_susp;
 
-bool pm_suspend_devices(void)
+extern int pm_device_system_action_run(const struct device *dev,
+		enum pm_device_action action, const struct pm_state_info *soc_state);
+
+bool pm_suspend_devices(const struct pm_state_info *soc_state)
 {
 	const struct device *devs;
 	size_t devc;
@@ -46,7 +49,7 @@ bool pm_suspend_devices(void)
 			continue;
 		}
 
-		ret = pm_device_action_run(dev, PM_DEVICE_ACTION_SUSPEND);
+		ret = pm_device_system_action_run(dev, PM_DEVICE_ACTION_SUSPEND, soc_state);
 		/* ignore devices not supporting or already at the given state */
 		if ((ret == -ENOSYS) || (ret == -ENOTSUP) || (ret == -EALREADY)) {
 			continue;
@@ -65,11 +68,11 @@ bool pm_suspend_devices(void)
 	return true;
 }
 
-void pm_resume_devices(void)
+void pm_resume_devices(const struct pm_state_info *soc_state)
 {
 	for (int i = (num_susp - 1); i >= 0; i--) {
-		pm_device_action_run(TYPE_SECTION_START(pm_device_slots)[i],
-				    PM_DEVICE_ACTION_RESUME);
+		pm_device_system_action_run(TYPE_SECTION_START(pm_device_slots)[i],
+				    PM_DEVICE_ACTION_RESUME, soc_state);
 	}
 
 	num_susp = 0;
@@ -77,12 +80,15 @@ void pm_resume_devices(void)
 
 #else /* !DT_PM_DEVICE_NEEDED */
 
-void pm_resume_devices(void)
+void pm_resume_devices(const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
 }
 
-bool pm_suspend_devices(void)
+bool pm_suspend_devices(const struct pm_state_info *soc_state)
 {
+	ARG_UNUSED(soc_state);
+
 	return true;
 }
 

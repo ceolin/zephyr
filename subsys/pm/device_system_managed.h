@@ -9,13 +9,13 @@
 
 #ifdef CONFIG_PM_DEVICE_SYSTEM_MANAGED
 
-bool pm_suspend_devices(void);
-void pm_resume_devices(void);
+bool pm_suspend_devices(const struct pm_state_info *soc_state);
+void pm_resume_devices(const struct pm_state_info *soc_state);
 
 #else
 
-bool pm_suspend_devices(void) { return true; }
-void pm_resume_devices(void) {}
+bool pm_suspend_devices(const struct pm_state_info *soc_state) { return true; }
+void pm_resume_devices(const struct pm_state_info *soc_state) {}
 
 #endif /* CONFIG_PM_DEVICE_SYSTEM_MANAGED */
 

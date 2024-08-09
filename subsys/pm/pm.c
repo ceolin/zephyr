@@ -89,7 +89,7 @@ void pm_system_resume(void)
 		if (atomic_add(&_cpus_active, 1) == 0) {
 			if ((z_cpus_pm_state[id].state != PM_STATE_RUNTIME_IDLE) &&
 					!z_cpus_pm_state[id].pm_device_disabled) {
-				pm_resume_devices();
+				pm_resume_devices(&z_cpus_pm_state[id]);
 			}
 		}
 #endif
@@ -151,8 +151,8 @@ bool pm_system_suspend(int32_t ticks)
 	if (atomic_sub(&_cpus_active, 1) == 1) {
 		if ((z_cpus_pm_state[id].state != PM_STATE_RUNTIME_IDLE) &&
 		    !z_cpus_pm_state[id].pm_device_disabled) {
-			if (!pm_suspend_devices()) {
-				pm_resume_devices();
+			if (!pm_suspend_devices(&z_cpus_pm_state[id])) {
+				pm_resume_devices(&z_cpus_pm_state[id]);
 				z_cpus_pm_state[id].state = PM_STATE_ACTIVE;
 				(void)atomic_add(&_cpus_active, 1);
 				SYS_PORT_TRACING_FUNC_EXIT(pm, system_suspend, ticks,

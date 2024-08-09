@@ -39,8 +39,8 @@ const char *pm_device_state_str(enum pm_device_state state)
 	}
 }
 
-int pm_device_action_run(const struct device *dev,
-			 enum pm_device_action action)
+static int device_action_run(const struct device *dev,
+			 enum pm_device_action action, const struct pm_state_info *soc_state)
 {
 	struct pm_device_base *pm = dev->pm_base;
 	int ret;
@@ -57,7 +57,7 @@ int pm_device_action_run(const struct device *dev,
 		return -ENOTSUP;
 	}
 
-	ret = pm->action_cb(dev, action, NULL);
+	ret = pm->action_cb(dev, action, soc_state);
 	if (ret < 0) {
 		/*
 		 * TURN_ON and TURN_OFF are actions triggered by a power domain
@@ -94,6 +94,18 @@ int pm_device_action_run(const struct device *dev,
 	}
 
 	return 0;
+}
+
+int pm_device_system_action_run(const struct device *dev,
+		enum pm_device_action action, const struct pm_state_info *soc_state)
+{
+	return device_action_run(dev, action, soc_state);
+}
+
+int pm_device_action_run(const struct device *dev,
+			 enum pm_device_action action)
+{
+	return device_action_run(dev, action, NULL);
 }
 
 static int power_domain_add_or_remove(const struct device *dev,
