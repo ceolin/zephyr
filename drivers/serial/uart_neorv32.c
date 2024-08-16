@@ -416,7 +416,7 @@ static int neorv32_uart_init(const struct device *dev)
 	return neorv32_uart_configure(dev, &data->uart_cfg);
 }
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static int neorv32_uart_pm_action(const struct device *dev,
 				  enum pm_device_action action,
 				  const struct pm_state_info *soc_state)
@@ -440,7 +440,7 @@ static int neorv32_uart_pm_action(const struct device *dev,
 
 	return 0;
 }
-#endif /* CONFIG_PM_DEVICE */
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static const struct uart_driver_api neorv32_uart_driver_api = {
 	.poll_in = neorv32_uart_poll_in,

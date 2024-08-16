@@ -141,14 +141,14 @@ bool intel_adsp_ipc_is_complete(const struct device *dev)
 int intel_adsp_ipc_send_message(const struct device *dev,
 			   uint32_t data, uint32_t ext_data)
 {
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 	enum pm_device_state current_state;
 
 	if (pm_device_state_get(INTEL_ADSP_IPC_HOST_DEV, &current_state) != 0 ||
 		current_state != PM_DEVICE_STATE_ACTIVE) {
 		return -ESHUTDOWN;
 	}
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 	pm_device_busy_set(dev);
 	const struct intel_adsp_ipc_config *config = dev->config;
@@ -233,8 +233,7 @@ static int dt_init(const struct device *dev)
 	return intel_adsp_ipc_init(dev);
 }
 
-#ifdef CONFIG_PM_DEVICE
-
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 void intel_adsp_ipc_set_resume_handler(const struct device *dev,
 	intel_adsp_ipc_resume_handler_t fn, void *arg)
 {
@@ -336,7 +335,7 @@ static struct ipc_control_driver_api ipc_power_control_api = {
 
 PM_DEVICE_DT_DEFINE(INTEL_ADSP_IPC_HOST_DTNODE, ipc_pm_action);
 
-#endif /* CONFIG_PM_DEVICE */
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static const struct intel_adsp_ipc_config ipc_host_config = {
 	.regs = (void *)INTEL_ADSP_IPC_REG_ADDRESS,
@@ -345,7 +344,7 @@ static const struct intel_adsp_ipc_config ipc_host_config = {
 static struct intel_adsp_ipc_data ipc_host_data;
 
 DEVICE_DT_DEFINE(INTEL_ADSP_IPC_HOST_DTNODE, dt_init, PM_DEVICE_DT_GET(INTEL_ADSP_IPC_HOST_DTNODE),
-	&ipc_host_data, &ipc_host_config, PRE_KERNEL_2, 0, COND_CODE_1(CONFIG_PM_DEVICE,
+	&ipc_host_data, &ipc_host_config, PRE_KERNEL_2, 0, COND_CODE_1(CONFIG_PM,
 	(&ipc_power_control_api), (NULL)));
 
 #endif /* DT_NODE_EXISTS(INTEL_ADSP_IPC_HOST_DTNODE) */

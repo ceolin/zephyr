@@ -39,9 +39,6 @@ config FLASH_LOAD_OFFSET
 config PM
 	default y
 
-config PM_DEVICE
-	default y
-
 config REGULATOR
 	default y
 

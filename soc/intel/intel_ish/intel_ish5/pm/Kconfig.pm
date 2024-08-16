@@ -9,9 +9,6 @@ if PM
 config GDT_DYNAMIC
 	default y
 
-config PM_DEVICE
-	default y
-
 config GDT_RESERVED_NUM_ENTRIES
 	default 3
 

@@ -77,16 +77,17 @@ struct quectel_lcx6g_data {
 	k_timeout_t pm_timeout;
 };
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 MODEM_CHAT_MATCH_DEFINE(pair003_success_match, "$PAIR001,003,0*38", "", NULL);
 MODEM_CHAT_SCRIPT_CMDS_DEFINE(
 	suspend_script_cmds,
 	MODEM_CHAT_SCRIPT_CMD_RESP("$PAIR003*39", pair003_success_match)
 );
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 MODEM_CHAT_SCRIPT_NO_ABORT_DEFINE(suspend_script, suspend_script_cmds,
 				  NULL, QUECTEL_LCX6G_SCRIPT_TIMEOUT_S);
-#endif /* CONFIG_PM_DEVICE */
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 MODEM_CHAT_MATCH_DEFINE(pair062_ack_match, "$PAIR001,062,0*3F", "", NULL);
 MODEM_CHAT_SCRIPT_CMDS_DEFINE(
@@ -236,7 +237,7 @@ static int quectel_lcx6g_resume(const struct device *dev)
 	return ret;
 }
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static int quectel_lcx6g_suspend(const struct device *dev)
 {
 	struct quectel_lcx6g_data *data = dev->data;
@@ -311,7 +312,7 @@ static int quectel_lcx6g_pm_action(const struct device *dev, enum pm_device_acti
 	quectel_lcx6g_unlock(dev);
 	return ret;
 }
-#endif /* CONFIG_PM_DEVICE */
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static int quectel_lcx6g_set_fix_rate(const struct device *dev, uint32_t fix_interval_ms)
 {

@@ -46,7 +46,7 @@ config PM_S2RAM_CUSTOM_MARKING
 
 config PM_NEED_ALL_DEVICES_IDLE
 	bool "System Low Power Mode Needs All Devices Idle"
-	depends on PM_DEVICE && !SMP
+	depends on PM && !SMP
 	help
 	  When this option is enabled, check that no devices are busy before
 	  entering into system low power mode.
@@ -82,25 +82,11 @@ config PM_POLICY_DEVICE_CONSTRAINTS
 
 endif # PM
 
-config PM_DEVICE
-	bool "Device Power Management"
-	help
-	  This option enables the device power management interface.  The
-	  interface implemented by device drivers are called by the power
-	  management subsystem. This allows device drivers to do any
-	  necessary power management operations like turning off
-	  device clocks and peripherals. Device drivers may also save
-	  and restore states in these hook functions.
-
-if PM_DEVICE
-
-module = PM_DEVICE
-module-str = Device Power Management
 source "subsys/logging/Kconfig.template.log_config"
 
 config PM_DEVICE_POWER_DOMAIN
 	bool "Power domain"
-	depends on PM_DEVICE
+	depends on PM || PM_DEVICE_RUNTIME
 	default y
 	help
 	  Enable support for Power Domain. With power domain enabled,
@@ -152,8 +138,5 @@ config PM_DEVICE_SYSTEM_MANAGED
 	  devices before entering a low power state. Conversely, after
 	  the core wakes up from low power mode all suspended devices
 	  are resumed.
-
-
-endif # PM_DEVICE
 
 endmenu

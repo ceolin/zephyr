@@ -34,5 +34,5 @@ After flashing, the LED starts to blink.
 PM configurations
 *****************
 
-By default, :kconfig:option:`CONFIG_PM_DEVICE` and :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME`
+By default, :kconfig:option:`CONFIG_PM` and :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME`
 are enabled.

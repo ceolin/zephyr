@@ -17,15 +17,15 @@ PINCTRL_DT_DEV_CONFIG_DECLARE(DT_NODELABEL(uart0));
 
 /* UART0 alternative configurations (default and sleep states) */
 PINCTRL_DT_STATE_PINS_DEFINE(DT_PATH(zephyr_user), uart0_alt_default);
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 PINCTRL_DT_STATE_PINS_DEFINE(DT_PATH(zephyr_user), uart0_alt_sleep);
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static const struct pinctrl_state uart0_alt[] = {
 	PINCTRL_DT_STATE_INIT(uart0_alt_default, PINCTRL_STATE_DEFAULT),
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 	PINCTRL_DT_STATE_INIT(uart0_alt_sleep, PINCTRL_STATE_SLEEP),
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 };
 
 static int remap_pins(void)

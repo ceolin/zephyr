@@ -935,7 +935,7 @@ static const struct crypto_driver_api crypto_smartbond_driver_api = {
 	.query_hw_caps = crypto_smartbond_query_hw_caps
 };
 
-#if defined(CONFIG_PM_DEVICE)
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static int crypto_smartbond_pm_action(const struct device *dev,
 	enum pm_device_action action, const struct pm_state_info *soc_state)
 {
@@ -962,7 +962,7 @@ static int crypto_smartbond_pm_action(const struct device *dev,
 
 	return ret;
 }
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static int crypto_smartbond_init(const struct device *dev)
 {

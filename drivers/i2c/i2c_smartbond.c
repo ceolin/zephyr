@@ -40,7 +40,7 @@ struct i2c_smartbond_data {
 #endif
 };
 
-#if defined(CONFIG_PM_DEVICE)
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static inline void i2c_smartbond_pm_prevent_system_sleep(void)
 {
 	/*
@@ -57,17 +57,17 @@ static inline void i2c_smartbond_pm_allow_system_sleep(void)
 	 */
 	pm_policy_state_lock_put(PM_STATE_STANDBY, PM_ALL_SUBSTATES);
 }
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static inline void i2c_smartbond_pm_policy_state_lock_get(const struct device *dev)
 {
-#ifdef CONFIG_PM_DEVICE
 #ifdef CONFIG_PM_DEVICE_RUNTIME
 	pm_device_runtime_get(dev);
 #else
+#ifdef CONFIG_PM
 	ARG_UNUSED(dev);
 	i2c_smartbond_pm_prevent_system_sleep();
-#endif
+#endif /* CONFIG_PM */
 #endif
 }
 

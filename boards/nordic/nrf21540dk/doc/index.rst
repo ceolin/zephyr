@@ -192,7 +192,7 @@ of pins for UART1:
                        <NRF_PSEL(UART_RX, 0, 16)>;
             };
          };
-         /* required if CONFIG_PM_DEVICE=y */
+         /* required if CONFIG_PM=y */
          uart1_sleep_alt: uart1_sleep_alt {
             group1 {
                psels = <NRF_PSEL(UART_TX, 0, 14)>,

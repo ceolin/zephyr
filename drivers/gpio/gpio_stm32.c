@@ -706,7 +706,7 @@ static const struct gpio_driver_api gpio_stm32_driver = {
 	.manage_callback = gpio_stm32_manage_callback,
 };
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static int gpio_stm32_pm_action(const struct device *dev,
 				enum pm_device_action action,
 				const struct pm_state_info *soc_state)
@@ -728,7 +728,7 @@ static int gpio_stm32_pm_action(const struct device *dev,
 
 	return 0;
 }
-#endif /* CONFIG_PM_DEVICE */
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 
 /**

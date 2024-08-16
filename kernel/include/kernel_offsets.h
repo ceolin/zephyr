@@ -78,10 +78,10 @@ GEN_ABSOLUTE_SYM(_DEVICE_STRUCT_HANDLES_OFFSET,
 		 offsetof(struct device, deps));
 #endif /* CONFIG_DEVICE_DEPS */
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 GEN_ABSOLUTE_SYM(_DEVICE_STRUCT_PM_OFFSET,
 		 offsetof(struct device, pm));
-#endif /* CONFIG_PM_DEVICE */
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 /* member offsets in the pm_device structure. Used in image post-processing */
 

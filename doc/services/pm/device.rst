@@ -4,12 +4,6 @@ Device Power Management
 Introduction
 ************
 
-Device power management (PM) on Zephyr is a feature that enables devices to
-save energy when they are not being used. This feature can be enabled by
-setting :kconfig:option:`CONFIG_PM_DEVICE` to ``y``. When this option is
-selected, device drivers implementing power management will be able to take
-advantage of the device power management subsystem.
-
 Zephyr supports two methods of device power management:
 
  - :ref:`Device Runtime Power Management <pm-device-runtime-pm>`

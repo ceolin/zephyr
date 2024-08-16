@@ -27,7 +27,6 @@ tests:
   sensors.build.pm:
     extra_configs:
       - CONFIG_PM=y
-      - CONFIG_PM_DEVICE=y
       - CONFIG_UART_INTERRUPT_DRIVEN=y
   sensors.generic_test:
     build_only: false

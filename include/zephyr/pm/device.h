@@ -310,7 +310,7 @@ BUILD_ASSERT(offsetof(struct pm_device_isr, base) == 0);
 #define Z_PM_DEVICE_DEFINE_SLOT(dev_id)
 #endif /* CONFIG_PM */
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 /**
  * Define device PM resources for the given node identifier.
  *
@@ -335,14 +335,15 @@ BUILD_ASSERT(offsetof(struct pm_device_isr, base) == 0);
 #else
 #define Z_PM_DEVICE_DEFINE(node_id, dev_id, pm_action_cb, isr_safe)
 #define Z_PM_DEVICE_GET(dev_id) NULL
-#endif /* CONFIG_PM_DEVICE */
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 /** @endcond */
 
 /**
  * Define device PM resources for the given device name.
  *
- * @note This macro is a no-op if @kconfig{CONFIG_PM_DEVICE} is not enabled.
+ * @note This macro is a no-op if @kconfig{CONFIG_PM} or @kconfig{CONFIG_PM_DEVICE_RUNTIME}
+ * are not enabled.
  *
  * @param dev_id Device id.
  * @param pm_action_cb PM control callback.
@@ -357,7 +358,8 @@ BUILD_ASSERT(offsetof(struct pm_device_isr, base) == 0);
 /**
  * Define device PM resources for the given node identifier.
  *
- * @note This macro is a no-op if @kconfig{CONFIG_PM_DEVICE} is not enabled.
+ * @note This macro is a no-op if @kconfig{CONFIG_PM} and @kconfig{CONFIG_PM_DEVICE_RUNTIME}
+ * are not enabled.
  *
  * @param node_id Node identifier.
  * @param pm_action_cb PM control callback.
@@ -372,7 +374,8 @@ BUILD_ASSERT(offsetof(struct pm_device_isr, base) == 0);
 /**
  * Define device PM resources for the given instance.
  *
- * @note This macro is a no-op if @kconfig{CONFIG_PM_DEVICE} is not enabled.
+ * @note This macro is a no-op if @kconfig{CONFIG_PM} and
+   @kconfig{CONFIG_PM_DEVICE_RUNTIME} are not enabled.
  *
  * @param idx Instance index.
  * @param pm_action_cb PM control callback.
@@ -392,7 +395,7 @@ BUILD_ASSERT(offsetof(struct pm_device_isr, base) == 0);
  * @param dev_id Device id.
  *
  * @return Reference to the device PM resources (NULL if device
- * @kconfig{CONFIG_PM_DEVICE} is disabled).
+ * @kconfig{CONFIG_PM} and @kconfig{CONFIG_PM_DEVICE_RUNTIME} are disabled).
  */
 #define PM_DEVICE_GET(dev_id) \
 	Z_PM_DEVICE_GET(dev_id)
@@ -403,7 +406,7 @@ BUILD_ASSERT(offsetof(struct pm_device_isr, base) == 0);
  * @param node_id Node identifier.
  *
  * @return Reference to the device PM resources (NULL if device
- * @kconfig{CONFIG_PM_DEVICE} is disabled).
+ * @kconfig{CONFIG_PM} and @kconfig{CONFIG_PM_DEVICE_RUNTIME} are disabled).
  */
 #define PM_DEVICE_DT_GET(node_id) \
 	PM_DEVICE_GET(Z_DEVICE_DT_DEV_ID(node_id))
@@ -460,7 +463,7 @@ void pm_device_children_action_run(const struct device *dev,
 		enum pm_device_action action,
 		pm_device_action_failed_cb_t failure_cb);
 
-#if defined(CONFIG_PM_DEVICE) || defined(__DOXYGEN__)
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) || defined(__DOXYGEN__)
 /**
  * @brief Obtain the power state of a device.
  *

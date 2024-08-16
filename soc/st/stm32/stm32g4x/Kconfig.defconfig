@@ -8,8 +8,6 @@ if SOC_SERIES_STM32G4X
 rsource "Kconfig.defconfig.stm32g4*"
 
 if PM
-config PM_DEVICE
-	default y
 
 config STM32_LPTIM_TIMER
 	default y

@@ -154,19 +154,19 @@ static int gnss_nmea_generic_init(const struct device *dev)
 		return ret;
 	}
 
-#if CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 	pm_device_init_suspended(dev);
 #else
 	ret = gnss_nmea_generic_resume(dev);
 	if (ret < 0) {
 		return ret;
 	}
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 	return 0;
 }
 
-#if CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static int gnss_nmea_generic_pm_action(const struct device *dev, enum pm_device_action action,
 		const struct pm_state_info *soc_state)
 {
@@ -179,7 +179,7 @@ static int gnss_nmea_generic_pm_action(const struct device *dev, enum pm_device_
 		return -ENOTSUP;
 	}
 }
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 #if DT_HAS_COMPAT_STATUS_OKAY(gnss_nmea_generic)
 MODEM_CHAT_SCRIPT_EMPTY_DEFINE(gnss_nmea_generic_init_chat_script);

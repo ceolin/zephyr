@@ -14,7 +14,7 @@ if BQ274XX
 
 config BQ274XX_PM
 	bool "BQ274XX Power Management"
-	depends on PM_DEVICE
+	depends on PM || PM_DEVICE_RUNTIME
 	default y
 	help
 	  This option enables the device power management feature of the

@@ -422,7 +422,7 @@ struct device {
 	 */
 	Z_DEVICE_DEPS_CONST device_handle_t *deps;
 #endif /* CONFIG_DEVICE_DEPS */
-#if defined(CONFIG_PM_DEVICE) || defined(__DOXYGEN__)
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) || defined(__DOXYGEN__)
 	/**
 	 * Reference to the device PM resources (only available if
 	 * @kconfig{CONFIG_PM_DEVICE} is enabled).
@@ -1023,7 +1023,7 @@ device_get_dt_nodelabels(const struct device *dev)
 		.state = (state_),							\
 		.data = (data_),							\
 		IF_ENABLED(CONFIG_DEVICE_DEPS, (.deps = (deps_),)) /**/			\
-		IF_ENABLED(CONFIG_PM_DEVICE, Z_DEVICE_INIT_PM_BASE(pm_)) /**/		\
+		Z_DEVICE_INIT_PM_BASE(pm_) /**/					\
 		IF_ENABLED(CONFIG_DEVICE_DT_METADATA,					\
 			   (IF_ENABLED(DT_NODE_EXISTS(node_id_),			\
 				       (.dt_meta = &Z_DEVICE_DT_METADATA_NAME_GET(	\
@@ -1035,11 +1035,15 @@ device_get_dt_nodelabels(const struct device *dev)
  * unions but they require these braces when combined with C99 designated initializers. For
  * more details see https://docs.zephyrproject.org/latest/develop/languages/cpp/
  */
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 #if defined(__STDC_VERSION__) && (__STDC_VERSION__) < 201100
-#  define Z_DEVICE_INIT_PM_BASE(pm_) ({ .pm_base = (pm_),},)
+#  define Z_DEVICE_INIT_PM_BASE(pm_) { .pm_base = (pm_),},
 #else
-#  define Z_DEVICE_INIT_PM_BASE(pm_)   (.pm_base = (pm_),)
+#  define Z_DEVICE_INIT_PM_BASE(pm_)   .pm_base = (pm_),
 #endif
+#else
+#define Z_DEVICE_INIT_PM_BASE(pm_)
+#endif /* CONFIG_PM || CONFIG_PM_DEVICE_RUNTIME */
 
 /**
  * @brief Device section name (used for sorting purposes).

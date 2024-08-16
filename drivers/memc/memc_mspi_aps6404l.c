@@ -196,7 +196,7 @@ static int memc_mspi_aps6404l_get_vendor_id(const struct device *psram, uint8_t 
 	return ret;
 }
 
-#if CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static int memc_mspi_aps6404l_half_sleep_enter(const struct device *psram)
 {
 	int ret;
@@ -270,7 +270,7 @@ static int memc_mspi_aps6404l_pm_action(const struct device *psram, enum pm_devi
 
 	return 0;
 }
-#endif /** IS_ENABLED(CONFIG_PM_DEVICE) */
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static int memc_mspi_aps6404l_init(const struct device *psram)
 {

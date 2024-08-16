@@ -465,7 +465,7 @@ static int mipi_dbi_smartbond_resume(const struct device *dev)
 	return mipi_dbi_smartbond_configure(dev);
 }
 
-#if defined(CONFIG_PM_DEVICE)
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static int mipi_dbi_smartbond_suspend(const struct device *dev)
 {
 	const struct mipi_dbi_smartbond_config *config = dev->config;
@@ -508,7 +508,7 @@ static int mipi_dbi_smartbond_pm_action(const struct device *dev, enum pm_device
 
 	return ret;
 }
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static int mipi_dbi_smartbond_init(const struct device *dev)
 {

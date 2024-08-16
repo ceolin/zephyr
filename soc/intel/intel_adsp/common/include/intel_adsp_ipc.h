@@ -177,7 +177,7 @@ int intel_adsp_ipc_send_message_sync(const struct device *dev,
 void intel_adsp_ipc_send_message_emergency(const struct device *dev, uint32_t data,
 					   uint32_t ext_data);
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 
 typedef int (*intel_adsp_ipc_resume_handler_t)(const struct device *dev, void *arg);
 
@@ -210,5 +210,5 @@ struct ipc_control_driver_api {
 	void *suspend_fn_args;
 };
 
-#endif /* CONFIG_PM_DEVICE */
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 #endif /* ZEPHYR_INCLUDE_INTEL_ADSP_IPC_H */

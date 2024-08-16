@@ -468,7 +468,7 @@ more than one UART for connecting peripheral devices:
                        <NRF_PSEL(UART_RX, 0, 16)>;
             };
          };
-         /* required if CONFIG_PM_DEVICE=y */
+         /* required if CONFIG_PM=y */
          uart1_sleep: uart1_sleep {
             group1 {
                psels = <NRF_PSEL(UART_TX, 0, 14)>,

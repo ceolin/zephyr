@@ -122,7 +122,7 @@ config UART_$(nrfx_uart_num)_A2I_RX_BUF_COUNT
 
 config UART_$(nrfx_uart_num)_GPIO_MANAGEMENT
 	bool "GPIO management on port $(nrfx_uart_num)"
-	depends on PM_DEVICE
+	depends on PM || PM_DEVICE_RUNTIME
 	default y
 	help
 	  If enabled, the driver will configure the GPIOs used by the uart to

@@ -17,7 +17,7 @@ zephyr_linker_section_configure(SECTION device_states
   KEEP INPUT ".z_devstate" ".z_devstate.*"
 )
 
-if(CONFIG_PM_DEVICE)
+if(CONFIG_PM OR CONFIG_PM_DEVICE_RUNTIME)
   zephyr_iterable_section(NAME pm_device_slots GROUP DATA_REGION ${XIP_ALIGN_WITH_INPUT} SUBALIGN CONFIG_LINKER_ITERABLE_SUBALIGN)
 endif()
 

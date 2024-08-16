@@ -33,7 +33,7 @@ static void trigger_handler(const struct device *dev,
 }
 #endif
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static void pm_info(enum pm_device_action action, int status)
 {
 	switch (action) {
@@ -56,7 +56,7 @@ static void pm_info(enum pm_device_action action, int status)
 		printk("Success\n");
 	}
 }
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 #define DEVICE_NODE DT_COMPAT_GET_ANY_STATUS_OKAY(ti_fdc2x1x)
 
@@ -89,7 +89,7 @@ int main(void)
 	}
 #endif
 
-#ifdef CONFIG_PM_DEVICE
+#ifdef CONFIG_PM
 	/* Testing the power modes */
 	enum pm_device_action p_action;
 	int ret;
@@ -131,7 +131,7 @@ int main(void)
 		printf("\n\n");
 
 
-#ifdef CONFIG_PM_DEVICE
+#ifdef CONFIG_PM
 		p_action = PM_DEVICE_ACTION_TURN_OFF;
 		ret = pm_device_action_run(dev, p_action);
 		pm_info(p_action, ret);

@@ -2132,7 +2132,7 @@ static int uart_stm32_init(const struct device *dev)
 #endif
 }
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static void uart_stm32_suspend_setup(const struct device *dev)
 {
 	const struct uart_stm32_config *config = dev->config;

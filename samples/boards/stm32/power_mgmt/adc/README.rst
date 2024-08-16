@@ -36,7 +36,7 @@ After flashing, the console shows the ADC measurement in the form:
 PM configurations
 *****************
 
-By default, :kconfig:option:`CONFIG_PM_DEVICE` and :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME` are
+By default, :kconfig:option:`CONFIG_PM` and :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME` are
 enabled.
 On STM32WB, we can observe a power consumption of about 25µA with both kconfig
 enabled, 27.5µA without (each time with :kconfig:option:`CONFIG_PM` enabled).

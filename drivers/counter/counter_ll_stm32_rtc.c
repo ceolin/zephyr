@@ -647,7 +647,7 @@ static const struct rtc_stm32_config rtc_config = {
 	.pclken = rtc_clk,
 };
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static int rtc_stm32_pm_action(const struct device *dev,
 			       enum pm_device_action action,
 			       const struct pm_state_info *soc_state)
@@ -673,7 +673,7 @@ static int rtc_stm32_pm_action(const struct device *dev,
 
 	return 0;
 }
-#endif /* CONFIG_PM_DEVICE */
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static const struct counter_driver_api rtc_stm32_driver_api = {
 	.start = rtc_stm32_start,

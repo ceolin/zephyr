@@ -82,14 +82,14 @@ static bool gnss_emul_fix_is_acquired(const struct device *dev)
 	return time_since_resume >= GNSS_EMUL_FIX_ACQUIRE_TIME_MS;
 }
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static void gnss_emul_clear_fix_timestamp(const struct device *dev)
 {
 	struct gnss_emul_data *data = dev->data;
 
 	data->fix_timestamp_ms = 0;
 }
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static void gnss_emul_schedule_work(const struct device *dev)
 {
@@ -190,7 +190,7 @@ static int gnss_emul_get_enabled_systems(const struct device *dev, gnss_systems_
 	return 0;
 }
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static void gnss_emul_resume(const struct device *dev)
 {
 	gnss_emul_update_fix_timestamp(dev, true);
@@ -231,7 +231,7 @@ static int gnss_emul_pm_action(const struct device *dev, enum pm_device_action a
 	gnss_emul_unlock(dev);
 	return ret;
 }
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static int gnss_emul_api_set_fix_rate(const struct device *dev, uint32_t fix_interval_ms)
 {

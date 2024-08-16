@@ -84,7 +84,7 @@ static int ds2484_configure(const struct device *dev, enum w1_settings_type type
 	return ds2482_84_write_config(&config->i2c_spec, data->reg_device_config);
 }
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static int ds2484_pm_control(const struct device *dev, enum pm_device_action action,
 		const struct pm_state_info *soc_state)
 {
@@ -109,7 +109,7 @@ static int ds2484_pm_control(const struct device *dev, enum pm_device_action act
 
 	return 0;
 }
-#endif /* CONFIG_PM_DEVICE */
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 static int ds2484_init(const struct device *dev)
 {

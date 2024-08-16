@@ -363,7 +363,7 @@ FSL_FEATURE_FLEXSPI_SUPPORT_SEPERATE_RXCLKSRC_PORTB
 	return 0;
 }
 
-#ifdef CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static int memc_flexspi_pm_action(const struct device *dev, enum pm_device_action action,
 		const struct pm_state_info *soc_state)
 {
@@ -391,7 +391,7 @@ static int memc_flexspi_pm_action(const struct device *dev, enum pm_device_actio
 
 	return 0;
 }
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 #if defined(FSL_FEATURE_FLEXSPI_SUPPORT_SEPERATE_RXCLKSRC_PORTB) && \
 	FSL_FEATURE_FLEXSPI_SUPPORT_SEPERATE_RXCLKSRC_PORTB

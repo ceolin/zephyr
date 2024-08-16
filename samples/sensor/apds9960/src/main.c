@@ -76,7 +76,7 @@ int main(void)
 		printk("ambient light intensity %d, proximity %d\n",
 		       intensity.val1, pdata.val1);
 
-#ifdef CONFIG_PM_DEVICE
+#ifdef CONFIG_PM
 		pm_device_action_run(dev, PM_DEVICE_ACTION_SUSPEND);
 		printk("set low power state for 2s\n");
 		k_sleep(K_MSEC(2000));

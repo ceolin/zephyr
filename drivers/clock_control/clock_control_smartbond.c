@@ -609,7 +609,7 @@ static const struct clock_control_driver_api smartbond_clock_control_api = {
 	.get_rate = smartbond_clock_control_get_rate,
 };
 
-#if CONFIG_PM_DEVICE
+#if defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME)
 static int smartbond_clocks_pm_action(const struct device *dev, enum pm_device_action action,
 	 	const struct pm_state_info *soc_state)
 {
@@ -635,7 +635,7 @@ static int smartbond_clocks_pm_action(const struct device *dev, enum pm_device_a
 
 	return 0;
 }
-#endif
+#endif /* defined(CONFIG_PM) || defined(CONFIG_PM_DEVICE_RUNTIME) */
 
 PM_DEVICE_DT_DEFINE(DT_NODELABEL(osc), smartbond_clocks_pm_action);
 

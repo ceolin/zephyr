@@ -44,6 +44,6 @@ of low power can be tested.
 PM configurations
 *****************
 
-By default, :kconfig:option:`CONFIG_PM_DEVICE` and :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME` are
+By default, :kconfig:option:`CONFIG_PM` and :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME` are
 enabled, but user can also deactivate one or the other to see each configuration
 in play.
