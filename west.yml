@@ -21,6 +21,8 @@ manifest:
   remotes:
     - name: upstream
       url-base: https://github.com/zephyrproject-rtos
+    - name: atmosic
+      url-base: https://github.com/atmosic
     - name: babblesim
       url-base: https://github.com/BabbleSim
 
@@ -157,6 +159,7 @@ manifest:
       groups:
         - hal
     - name: hal_atmosic
+      remote: atmosic
       revision: 0f38596a04e1e1905166002f04d0a85e62a5b792
       path: modules/hal/atmosic
     - name: hal_espressif
