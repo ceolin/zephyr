@@ -173,6 +173,14 @@ New APIs and options
 
     * :kconfig:option:`CONFIG_MQTT_VERSION_5_0`
 
+* Power management
+
+    * :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME_WQ_STACK_SIZE`
+    * :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME_WQ_PRIO`
+    * :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME_WQ_INIT_PRIO`
+    * :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME_USE_SYSTEM_WQ`
+    * :kconfig:option:`CONFIG_PM_DEVICE_RUNTIME_ASYNC`
+
   * Sockets
 
     * :kconfig:option:`CONFIG_NET_SOCKETS_INET_RAW`
