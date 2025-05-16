@@ -130,6 +130,14 @@ config PM_DEVICE_RUNTIME_ASYNC
 	  in the power management device runtime.
 
 if PM_DEVICE_RUNTIME_ASYNC
+
+config PM_DRIVER_NEEDS_DEDICATED_WQ
+    bool
+
+choice PM_WORKQUEUE
+       default PM_DEVICE_RUNTIME_USE_OWN_WQ if PM_DRIVER_NEEDS_DEDICATED_WQ
+       default PM_DEVICE_RUNTIME_USE_SYSTEM_WQ
+
 config PM_DEVICE_RUNTIME_USE_SYSTEM_WQ
 	bool "Use the system workqueue"
 	default n
@@ -154,6 +162,8 @@ config PM_DEVICE_RUNTIME_WQ_INIT_PRIO
 	default 50
 	help
 	  Init priority level to setup the device runtime workqueue.
+endchoice
+
 endif # PM_DEVICE_RUNTIME_ASYNC
 endif # PM_DEVICE_RUNTIME
 
