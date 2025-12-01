@@ -27,6 +27,12 @@ Without this validation, bugs such as:
 
 ...may go undetected until runtime failures occur, making debugging more difficult and potentially leading to system crashes or data corruption.
 
+**Important Note**: It should be understood that enabling validation without userspace has significant limitations:
+- Memory access permission validation cannot be performed (kernel threads have access to all memory)
+- Error handling via thread termination (`K_OOPS()`) is problematic for kernel threads
+- Only basic validation (pointer validity, object type, initialization state) can be performed
+- The primary security and safety benefits of userspace validation (memory protection, privilege isolation) are not available
+
 ## Proposed Change (Summary)
 
 Enable syscall validation functions to run even when `CONFIG_USERSPACE` is disabled by:
@@ -116,8 +122,14 @@ Verification functions currently assume they are called from user mode and may r
    - Ensure kernel object tracking works without full userspace infrastructure
 
 2. **Memory validation** adapts to supervisor mode:
-   - `K_SYSCALL_MEMORY_READ()` and `K_SYSCALL_MEMORY_WRITE()` macros may need adaptation
-   - In supervisor mode, we can still validate pointer validity and bounds, but permission checks may be simplified
+   - `K_SYSCALL_MEMORY_READ()` and `K_SYSCALL_MEMORY_WRITE()` macros currently check user thread memory access permissions, which are meaningless in kernel space
+   - In supervisor mode, we can only perform limited validation:
+     * Pointer is not NULL
+     * Pointer alignment (if applicable)
+     * Buffer size doesn't cause integer overflow
+     * Basic bounds checking (if RAM region information is available)
+   - Memory permission checks (read/write access, memory domain boundaries) cannot be performed without userspace infrastructure
+   - This significantly limits the value of memory validation when userspace is disabled
 
 3. **Build system changes**:
    - Ensure verification functions and related infrastructure are compiled when `CONFIG_SYSCALL_VALIDATION` is enabled
@@ -127,7 +139,16 @@ Verification functions currently assume they are called from user mode and may r
 
 1. **Performance Impact**: Validation adds overhead. This should be documented and measured.
 
-2. **Error Handling**: Currently, verification functions use `K_OOPS()` which kills the calling thread. In supervisor mode without userspace, this behavior may need to be configurable (e.g., return error codes vs. oops).
+2. **Error Handling**: Currently, verification functions use `K_OOPS()` which kills the calling thread. This is problematic in kernel space because:
+   - Killing kernel threads (especially essential threads) can crash the system
+   - Kernel threads may be in interrupt context or holding locks, making termination unsafe
+   - Kernel threads are trusted code, so killing them may be too harsh for validation failures
+   - Alternative approaches need careful consideration:
+     * Return error codes (but changes API semantics - APIs that don't currently return errors would need to)
+     * Log and continue (may mask bugs)
+     * Configurable error handling (adds complexity)
+     * Use assertions that can be disabled (defeats the purpose)
+   - This is a fundamental design challenge that needs resolution before implementation
 
 3. **Dependencies**: Some validation functions may depend on userspace infrastructure. These dependencies need to be identified and made optional or replaced.
 
@@ -149,19 +170,51 @@ Components that may be affected:
 
 ## Concerns and Unresolved Questions
 
-1. **Performance overhead**: What is the performance impact of enabling validation? Should there be a way to disable it for release builds?
+1. **Performance overhead**: What is the performance impact of enabling validation? Should there be a way to disable it for release builds? Validation adds function call overhead and parameter checking on every API call, which could significantly impact real-time performance characteristics of applications.
 
-2. **Error handling semantics**: Should validation failures in supervisor mode behave differently than in user mode? Currently `K_OOPS()` kills the thread - is this appropriate for supervisor mode?
+2. **Memory access validation limitations**: A fundamental challenge is that many validation checks are designed around the concept of user thread memory access permissions. In kernel space, all threads have supervisor privileges and can access any memory address. The current validation macros like `K_SYSCALL_MEMORY_READ()` and `K_SYSCALL_MEMORY_WRITE()` check:
+   - Whether the calling thread has read/write permissions on the memory buffer
+   - Whether the buffer is within the thread's memory domain
+   - Whether the buffer crosses memory domain boundaries
 
-3. **Memory validation**: How should memory validation work in supervisor mode? Can we validate pointer validity without full userspace memory protection infrastructure?
+   These checks are meaningless in kernel space where there are no memory protection boundaries. We can only perform basic sanity checks like:
+   - Pointer is not NULL
+   - Pointer is within valid RAM regions (if such information is available)
+   - Buffer size doesn't cause integer overflow
 
-4. **Kernel object tracking**: Does the kernel object tracking system work correctly without full userspace? Are there dependencies that need to be addressed?
+   This significantly reduces the value proposition of enabling validation without userspace.
 
-5. **Backward compatibility**: Will this change affect existing applications? Should this be opt-in via the config option?
+3. **Error handling semantics - thread termination**: Currently, verification functions use `K_OOPS()` which kills the calling thread when validation fails. This approach works for user threads because:
+   - User threads are considered untrusted
+   - Killing a misbehaving user thread doesn't compromise system integrity
+   - The kernel can continue operating with other threads
 
-6. **Testing strategy**: How do we ensure comprehensive test coverage for this feature?
+   However, in kernel space without userspace:
+   - All threads are kernel threads, potentially including critical system threads
+   - Killing a kernel thread (especially an essential thread) could crash the entire system
+   - Kernel threads are typically trusted code, so killing them on validation failure may be too harsh
+   - Many kernel threads may be in interrupt context or holding locks, making termination unsafe
 
-7. **Documentation**: How should this feature be documented? Should it be presented as a development/debugging aid?
+   Alternative error handling approaches need to be considered:
+   - Return error codes instead of killing the thread (but this changes API semantics)
+   - Log errors and continue (but this may mask bugs)
+   - Use assertions that can be disabled in release builds (but this defeats the purpose)
+   - Make error handling configurable (adds complexity)
+
+4. **Kernel object validation limitations**: Kernel object validation functions like `k_object_validate()` check:
+   - Object permissions (whether the thread has been granted access)
+   - Object initialization state
+   - Object type correctness
+
+   Without userspace, the permission system may not be fully initialized or may not apply. We need to determine:
+   - Can we validate kernel objects without the userspace permission infrastructure?
+   - Should we skip permission checks when userspace is disabled?
+   - How do we handle kernel objects that are created on the stack or in ways that don't register with the object tracking system?
+
+5. **Kernel object tracking dependencies**: The kernel object tracking system (`k_object_find()`, `k_object_validate()`, etc.) may have dependencies on userspace infrastructure. We need to verify:
+   - Does object tracking work correctly without `CONFIG_USERSPACE`?
+   - Are there data structures or initialization code paths that require userspace?
+   - Can we make these dependencies optional or provide stub implementations?
 
 ## Alternatives Considered
 
