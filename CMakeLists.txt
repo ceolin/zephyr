@@ -71,6 +71,14 @@ set(ZEPHYR_CURRENT_LINKER_PASS 0)
 set(ZEPHYR_CURRENT_LINKER_CMD    linker_zephyr_pre${ZEPHYR_CURRENT_LINKER_PASS}.cmd)
 set(ZEPHYR_LINK_STAGE_EXECUTABLE zephyr_pre${ZEPHYR_CURRENT_LINKER_PASS})
 
+# Helper variable used for syscall handlers built when either userspace
+# or standalone validation is enabled.
+if(CONFIG_USERSPACE OR CONFIG_SYSCALL_VALIDATION)
+  set(CONFIG_USERSPACE_HANDLERS TRUE)
+else()
+  set(CONFIG_USERSPACE_HANDLERS FALSE)
+endif()
+
 # Make kconfig variables available to the linker script generator
 zephyr_linker_include_generated(KCONFIG ${CMAKE_CURRENT_BINARY_DIR}/.config)
 
@@ -84,7 +92,7 @@ zephyr_linker_include_var(VAR CMAKE_VERBOSE_MAKEFILE VALUE ${CMAKE_VERBOSE_MAKEF
 # existing variable to allow slowly cleanup of linking stage handling.
 # Three stage linking active: pre0 -> pre1 -> final, this will correspond to `pre1`
 # Two stage linking active:   pre0 -> final, this will correspond to `pre0`
-if(CONFIG_USERSPACE OR CONFIG_DEVICE_DEPS)
+if(CONFIG_USERSPACE OR CONFIG_SYSCALL_VALIDATION OR CONFIG_DEVICE_DEPS)
   set(ZEPHYR_PREBUILT_EXECUTABLE zephyr_pre1)
 else()
   set(ZEPHYR_PREBUILT_EXECUTABLE zephyr_pre0)
@@ -607,7 +615,7 @@ include(cmake/extra_flags.cmake)
 
 zephyr_cc_option(-fno-asynchronous-unwind-tables)
 
-if(CONFIG_USERSPACE)
+if(CONFIG_USERSPACE OR CONFIG_SYSCALL_VALIDATION)
   zephyr_compile_options($<TARGET_PROPERTY:compiler,no_global_merge>)
 endif()
 
@@ -674,7 +682,7 @@ endif()
 
 # Declare MPU userspace dependencies before the linker scripts to make
 # sure the order of dependencies are met
-if(CONFIG_USERSPACE)
+if(CONFIG_USERSPACE OR CONFIG_SYSCALL_VALIDATION)
   add_custom_target(app_smem)
   set(APP_SMEM_ALIGNED_DEP app_smem_aligned_linker)
   set(APP_SMEM_UNALIGNED_DEP app_smem_unaligned_linker)
@@ -996,7 +1004,7 @@ add_custom_command(
   --syscall-exports-llext  include/generated/zephyr/syscall_exports_llext.c
   --syscall-weakdefs-llext syscall_weakdefs_llext.c # compiled in CMake library 'syscall_weakdefs'
   --syscall-list     ${syscall_list_h}
-  $<$<BOOL:${CONFIG_USERSPACE}>:--gen-mrsh-files>
+  $<$<BOOL:$<OR:${CONFIG_USERSPACE},${CONFIG_SYSCALL_VALIDATION}>>:--gen-mrsh-files>
   ${SYSCALL_LONG_REGISTERS_ARG}
   ${SYSCALL_SPLIT_TIMEOUT_ARG}
   COMMAND
@@ -1480,7 +1488,7 @@ if(CONFIG_USERSPACE)
   endforeach()
 endif()
 
-if(CONFIG_USERSPACE OR CONFIG_DEVICE_DEPS)
+if(CONFIG_USERSPACE OR CONFIG_SYSCALL_VALIDATION OR CONFIG_DEVICE_DEPS)
   configure_linker_script(
     ${ZEPHYR_CURRENT_LINKER_CMD}
     "${LINKER_PASS_${ZEPHYR_CURRENT_LINKER_PASS}_DEFINE}"

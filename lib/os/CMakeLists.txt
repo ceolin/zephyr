@@ -55,7 +55,7 @@ if(CONFIG_ASSERT OR CONFIG_ASSERT_VERBOSE)
 zephyr_sources(assert.c)
 endif()
 
-zephyr_sources_ifdef(CONFIG_USERSPACE mutex.c user_work.c)
+zephyr_sources_ifdef(CONFIG_USERSPACE_HANDLERS mutex.c user_work.c)
 
 zephyr_sources_ifdef(CONFIG_MPSC_PBUF mpsc_pbuf.c)
 

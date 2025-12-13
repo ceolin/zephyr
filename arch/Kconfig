@@ -405,7 +405,7 @@ config NO_UNUSED_STACK_INSPECTION
 config MAX_THREAD_BYTES
 	int "Bytes to use when tracking object thread permissions"
 	default 2
-	depends on USERSPACE
+	depends on USERSPACE || SYSCALL_VALIDATION
 	help
 	  Every kernel object will have an associated bitfield to store
 	  thread permissions for that object. This controls the size of the

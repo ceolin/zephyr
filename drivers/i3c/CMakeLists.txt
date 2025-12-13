@@ -18,7 +18,7 @@ if(DEFINED CONFIG_I3C_I2C_NUM_OF_DESC_MEM_SLABS AND CONFIG_I3C_I2C_NUM_OF_DESC_M
 endif()
 
 zephyr_library_sources_ifdef(
-  CONFIG_USERSPACE
+  CONFIG_USERSPACE_HANDLERS
   i3c_handlers.c
 )
 

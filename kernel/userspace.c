@@ -759,11 +759,18 @@ int k_object_validate(struct k_object *ko, enum k_objects otype,
 		return -EBADF;
 	}
 
-	/* Manipulation of any kernel objects by a user thread requires that
-	 * thread be granted access first, even for uninitialized objects
+	/* When userspace is enabled we must enforce permissions. For
+	 * validation-only builds (CONFIG_SYSCALL_VALIDATION), permissions
+	 * are not tracked, so skip this check.
 	 */
-	if (unlikely(thread_perms_test(ko) == 0)) {
-		return -EPERM;
+	if (IS_ENABLED(CONFIG_USERSPACE)) {
+		/* Manipulation of any kernel objects by a user thread requires
+		 * that thread be granted access first, even for uninitialized
+		 * objects.
+		 */
+		if (unlikely(thread_perms_test(ko) == 0)) {
+			return -EPERM;
+		}
 	}
 
 	/* Initialization state checks. _OBJ_INIT_ANY, we don't care */

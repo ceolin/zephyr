@@ -5,7 +5,7 @@ zephyr_syscall_header(${ZEPHYR_BASE}/include/zephyr/drivers/dac.h)
 zephyr_library()
 
 zephyr_library_sources_ifdef(CONFIG_DAC_SHELL dac_shell.c)
-zephyr_library_sources_ifdef(CONFIG_USERSPACE dac_handlers.c)
+zephyr_library_sources_ifdef(CONFIG_USERSPACE_HANDLERS dac_handlers.c)
 
 # zephyr-keep-sorted-start
 zephyr_library_sources_ifdef(CONFIG_DAC_AD559X dac_ad559x.c)

@@ -7,7 +7,7 @@ zephyr_library()
 
 zephyr_library_sources(rtc_utils.c)
 zephyr_library_sources_ifdef(CONFIG_RTC_SHELL rtc_shell.c)
-zephyr_library_sources_ifdef(CONFIG_USERSPACE rtc_handlers.c)
+zephyr_library_sources_ifdef(CONFIG_USERSPACE_HANDLERS rtc_handlers.c)
 
 # zephyr-keep-sorted-start
 zephyr_library_sources_ifdef(CONFIG_RTC_AM1805 rtc_am1805.c)

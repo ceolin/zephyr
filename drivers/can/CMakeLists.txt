@@ -8,7 +8,7 @@ zephyr_library()
 # zephyr-keep-sorted-start
 zephyr_library_sources_ifdef(CONFIG_CAN can_common.c)
 zephyr_library_sources_ifdef(CONFIG_CAN_SHELL can_shell.c)
-zephyr_library_sources_ifdef(CONFIG_USERSPACE can_handlers.c)
+zephyr_library_sources_ifdef(CONFIG_USERSPACE_HANDLERS can_handlers.c)
 # zephyr-keep-sorted-stop
 
 # CAN subsystem driver files

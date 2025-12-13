@@ -3,7 +3,7 @@
 zephyr_library()
 zephyr_syscall_header(${ZEPHYR_BASE}/include/zephyr/drivers/charger.h)
 
-zephyr_library_sources_ifdef(CONFIG_USERSPACE charger_handlers.c)
+zephyr_library_sources_ifdef(CONFIG_USERSPACE_HANDLERS charger_handlers.c)
 
 # zephyr-keep-sorted-start
 zephyr_library_sources_ifdef(CONFIG_CHARGER_AXP2101 charger_axp2101.c)

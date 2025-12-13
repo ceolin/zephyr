@@ -2,7 +2,7 @@
 # The contents of this file is based on include/zephyr/linker/kobject-text.ld
 # Please keep in sync
 
-if(CONFIG_USERSPACE)
+if(CONFIG_USERSPACE OR CONFIG_SYSCALL_VALIDATION)
   zephyr_linker_section(NAME _kobject_text_area
                         GROUP TEXT_REGION NOINPUT)
 

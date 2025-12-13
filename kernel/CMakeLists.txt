@@ -172,7 +172,7 @@ endif()
 # This order has to be maintained. Any new file should be placed
 # above these 2 files.
 target_sources_ifdef(
-  CONFIG_USERSPACE
+  CONFIG_USERSPACE_HANDLERS
   kernel PRIVATE
   futex.c
   mem_domain.c

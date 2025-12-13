@@ -18,7 +18,7 @@ zephyr_library_sources_ifdef(CONFIG_UPDATEHUB updatehub_integrity.c)
 zephyr_library_sources_ifdef(CONFIG_UPDATEHUB updatehub_storage.c)
 zephyr_library_sources_ifdef(CONFIG_UPDATEHUB_SHELL shell.c)
 
-zephyr_library_sources_ifdef(CONFIG_USERSPACE updatehub_handlers.c)
+zephyr_library_sources_ifdef(CONFIG_USERSPACE_HANDLERS updatehub_handlers.c)
 
 zephyr_include_directories(
   ${ZEPHYR_BASE}/subsys/mgmt/updatehub/include

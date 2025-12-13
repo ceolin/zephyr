@@ -10,7 +10,7 @@
 # so the addresses to kobjects would remain the same
 # during the final stages of linking (LINKER_ZEPHYR_FINAL).
 
-if(CONFIG_USERSPACE)
+if(CONFIG_USERSPACE OR CONFIG_SYSCALL_VALIDATION)
   # By the magic of MIN_SIZE the space will be there
   zephyr_linker_section_configure(SECTION .rodata KEEP INPUT ".kobject_data.rodata*"
     MIN_SIZE @KOBJECT_RODATA_SZ@

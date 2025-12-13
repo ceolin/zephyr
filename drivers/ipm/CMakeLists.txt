@@ -4,7 +4,7 @@ zephyr_syscall_header(${ZEPHYR_BASE}/include/zephyr/drivers/ipm.h)
 
 zephyr_library()
 
-zephyr_library_sources_ifdef(CONFIG_USERSPACE ipm_handlers.c)
+zephyr_library_sources_ifdef(CONFIG_USERSPACE_HANDLERS ipm_handlers.c)
 
 # zephyr-keep-sorted-start
 zephyr_library_sources_ifdef(CONFIG_ESP32_SOFT_IPM ipm_esp32.c)

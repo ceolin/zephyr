@@ -237,6 +237,7 @@ def wrapper_defs(func_name, func_type, args, fn, userspace_only):
     wrap = ''
     if not userspace_only:
         wrap += f"extern {func_type} z_impl_{func_name}({decl_arglist});\n"
+        wrap += f"extern {func_type} z_vrfy_{func_name}({decl_arglist});\n"
         wrap += "\n"
 
     wrap += "__pinned_func\n"
@@ -297,13 +298,23 @@ def wrapper_defs(func_name, func_type, args, fn, userspace_only):
     wrap += retcode
     if not userspace_only:
         wrap += "\t" + "}\n"
-        wrap += "#endif\n"
+        wrap += "#endif /* CONFIG_USERSPACE */\n"
+
+        impl_arglist = ", ".join([argrec[1] for argrec in args])
+
+        if func_type == "void":
+            validation_return = "\t" + f"z_vrfy_{func_name}({impl_arglist});\n\treturn;\n"
+        else:
+            validation_return = "\t" + f"return z_vrfy_{func_name}({impl_arglist});\n"
+
+        wrap += "#if defined(CONFIG_SYSCALL_VALIDATION) && !defined(CONFIG_USERSPACE)\n"
+        wrap += validation_return
+        wrap += "#endif /* CONFIG_SYSCALL_VALIDATION && !CONFIG_USERSPACE */\n"
 
         # Otherwise fall through to direct invocation of the impl func.
         # Note the compiler barrier: that is required to prevent code from
         # the impl call from being hoisted above the check for user
         # context.
-        impl_arglist = ", ".join([argrec[1] for argrec in args])
         impl_call = f"z_impl_{func_name}({impl_arglist})"
         wrap += "\t" + "compiler_barrier();\n"
         ret = "return " if func_type != "void" else ""

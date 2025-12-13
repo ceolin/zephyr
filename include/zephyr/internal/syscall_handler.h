@@ -13,7 +13,7 @@
  * @{
  */
 
-#if defined(CONFIG_USERSPACE) || defined(__DOXYGEN__)
+#if defined(CONFIG_USERSPACE) || defined(CONFIG_SYSCALL_VALIDATION) || defined(__DOXYGEN__)
 
 #ifndef _ASMLANGUAGE
 #include <zephyr/kernel.h>
@@ -431,8 +431,8 @@ int k_usermode_string_copy(char *dst, const char *src, size_t maxlen);
 #define K_SYSCALL_MEMORY(ptr, size, write) \
 	K_SYSCALL_VERIFY_MSG(K_SYSCALL_MEMORY_SIZE_CHECK(ptr, size) \
 			     && !Z_DETECT_POINTER_OVERFLOW(ptr, size) \
-			     && (arch_buffer_validate((void *)(ptr), (size), (write)) \
-			     == 0), \
+			     && (!IS_ENABLED(CONFIG_USERSPACE) ? ((ptr) != NULL) : \
+			     (arch_buffer_validate((void *)(ptr), (size), (write)) == 0)), \
 			     "Memory region %p (size %zu) %s access denied", \
 			     (void *)(ptr), (size_t)(size), \
 			     (write) ? "write" : "read")

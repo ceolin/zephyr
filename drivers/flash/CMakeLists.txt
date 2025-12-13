@@ -20,7 +20,7 @@ zephyr_library()
 zephyr_library_sources_ifdef(CONFIG_FLASH_JESD216 jesd216.c)
 zephyr_library_sources_ifdef(CONFIG_FLASH_PAGE_LAYOUT flash_page_layout.c)
 zephyr_library_sources_ifdef(CONFIG_FLASH_SHELL flash_shell.c)
-zephyr_library_sources_ifdef(CONFIG_USERSPACE flash_handlers.c)
+zephyr_library_sources_ifdef(CONFIG_USERSPACE_HANDLERS flash_handlers.c)
 # zephyr-keep-sorted-stop
 
 # zephyr-keep-sorted-start

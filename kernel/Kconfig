@@ -226,6 +226,17 @@ config THREAD_USERSPACE_LOCAL_DATA
 	depends on USERSPACE
 	default y if ERRNO && !ERRNO_IN_TLS && !LIBC_ERRNO
 
+config SYSCALL_VALIDATION
+	bool "Enable syscall parameter validation without userspace"
+	depends on !USERSPACE
+	help
+	  When enabled, syscall APIs will invoke verification functions
+	  to validate parameters even when userspace isolation is disabled.
+
+	  Note: When CONFIG_USERSPACE is enabled, validation is always
+	  performed. This option only affects behavior when userspace
+	  is disabled.
+
 config USERSPACE_THREAD_MAY_RAISE_PRIORITY
 	bool "Thread can raise own priority"
 	depends on USERSPACE

@@ -9,7 +9,7 @@ if(CONFIG_FAKE_ENTROPY_NATIVE_SIM)
   target_sources(native_simulator INTERFACE fake_entropy_native_bottom.c)
 endif()
 
-zephyr_library_sources_ifdef(CONFIG_USERSPACE entropy_handlers.c)
+zephyr_library_sources_ifdef(CONFIG_USERSPACE_HANDLERS entropy_handlers.c)
 
 # zephyr-keep-sorted-start
 zephyr_library_sources_ifdef(CONFIG_ENTROPY_AMBIQ_PUF_TRNG entropy_ambiq_puf_trng.c)

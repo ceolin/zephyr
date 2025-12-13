@@ -4,7 +4,7 @@ zephyr_syscall_header(${ZEPHYR_BASE}/include/zephyr/drivers/w1.h)
 
 zephyr_library()
 
-zephyr_sources_ifdef(CONFIG_USERSPACE w1_handlers.c)
+zephyr_sources_ifdef(CONFIG_USERSPACE_HANDLERS w1_handlers.c)
 zephyr_library_sources_ifdef(CONFIG_W1_SHELL w1_shell.c)
 zephyr_library_sources(w1_common.c)
 

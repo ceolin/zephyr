@@ -10,7 +10,7 @@ zephyr_syscall_header(${ZEPHYR_BASE}/include/zephyr/drivers/counter.h)
 zephyr_library()
 
 zephyr_library_sources_ifdef(CONFIG_COUNTER_SHELL counter_timer_shell.c)
-zephyr_library_sources_ifdef(CONFIG_USERSPACE counter_handlers.c)
+zephyr_library_sources_ifdef(CONFIG_USERSPACE_HANDLERS counter_handlers.c)
 
 # zephyr-keep-sorted-start
 zephyr_library_sources_ifdef(CONFIG_ACE_V1X_ART_COUNTER counter_ace_v1x_art.c)

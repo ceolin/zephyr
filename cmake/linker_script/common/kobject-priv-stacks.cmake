@@ -2,7 +2,7 @@
 # The contents of this file is based on include/zephyr/linker/kobject-priv-stacks.ld
 # Please keep in sync
 
-if(CONFIG_USERSPACE)
+if(CONFIG_USERSPACE OR CONFIG_SYSCALL_VALIDATION)
   if(CONFIG_GEN_PRIV_STACKS)
     # Padding is needed to preserve kobject addresses
     # if we have reserved more space than needed.
