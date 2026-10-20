@@ -759,8 +759,10 @@ def find_kobjects(elf, syms):
 
 
 def get_symbols(elf):
+    # A dynamically linked executable also has a .dynsym table, which does
+    # not contain the kernel symbols: use the static symbol table.
     for section in elf.iter_sections():
-        if isinstance(section, SymbolTableSection):
+        if isinstance(section, SymbolTableSection) and section['sh_type'] == 'SHT_SYMTAB':
             return {sym.name: sym.entry.st_value for sym in section.iter_symbols()}
 
     raise LookupError("Could not find symbol table")
