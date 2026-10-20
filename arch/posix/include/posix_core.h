@@ -13,41 +13,8 @@ extern "C" {
 #endif
 
 
-typedef struct {
-	k_thread_entry_t entry_point;
-	void *arg1;
-	void *arg2;
-	void *arg3;
-
-#if defined(CONFIG_ARCH_POSIX_UPDATE_STACK_INFO)
-	/* Original Zephyr-allocated stack info, saved before being
-	 * overwritten with the real pthread stack bounds.
-	 */
-	uintptr_t zephyr_stack_start;
-	size_t zephyr_stack_size;
-#endif
-
-	int thread_idx;
-
-#if defined(CONFIG_ARCH_HAS_THREAD_ABORT)
-	/* The kernel may indicate that a thread has been aborted several */
-	/* times */
-	int aborted;
-#endif
-
-	/*
-	 * Note: If more elements are added to this structure, remember to
-	 * update ARCH_POSIX_RECOMMENDED_STACK_SIZE in the configuration.
-	 *
-	 * Without CONFIG_ARCH_POSIX_UPDATE_STACK_INFO or CONFIG_ARCH_HAS_THREAD_ABORT:
-	 *   4 pointers + 1 int
-	 *   32-bit: 4*4 + 1*4 = 20 bytes
-	 *   64-bit: 4*8 + 1*4 = 36 bytes
-	 * With CONFIG_ARCH_HAS_THREAD_ABORT adds 1 int (4 bytes).
-	 * With CONFIG_ARCH_POSIX_UPDATE_STACK_INFO adds 1 pointer + 1 size_t
-	 *   (32-bit: 8 bytes, 64-bit: 16 bytes).
-	 */
-} posix_thread_status_t;
+/* The per thread status of this architecture is kept in the thread object */
+typedef struct _thread_arch posix_thread_status_t;
 
 
 void posix_irq_check_idle_exit(void);

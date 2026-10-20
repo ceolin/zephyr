@@ -3,7 +3,11 @@ common:
     - kernel
     - threads
 tests:
-  kernel.threads.runtime_stack_safety: {}
+  kernel.threads.runtime_stack_safety:
+    # The POSIX arch runs kernel threads on the host pthread stack, so the
+    # Zephyr managed stack is never used and its usage cannot be measured
+    arch_exclude:
+      - posix
   kernel.threads.runtime_stack_safety.userspace:
     filter: CONFIG_ARCH_HAS_USERSPACE
     tags:

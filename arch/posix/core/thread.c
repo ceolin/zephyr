@@ -33,13 +33,10 @@ void arch_new_thread(struct k_thread *thread, k_thread_stack_t *stack,
 		     char *stack_ptr, k_thread_entry_t entry,
 		     void *p1, void *p2, void *p3)
 {
+	ARG_UNUSED(stack);
+	ARG_UNUSED(stack_ptr);
 
-	posix_thread_status_t *thread_status;
-
-	/* We store it in the same place where normal archs store the
-	 * "initial stack frame"
-	 */
-	thread_status = Z_STACK_PTR_TO_FRAME(posix_thread_status_t, stack_ptr);
+	posix_thread_status_t *thread_status = &thread->arch;
 
 	/* z_thread_entry() arguments */
 	thread_status->entry_point = entry;

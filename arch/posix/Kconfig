@@ -32,8 +32,8 @@ config ARCH_POSIX_RECOMMENDED_STACK_SIZE
 	help
 	  In bytes, stack size for Zephyr threads meant only for the POSIX
 	  architecture.
-	  (In this architecture only part of the thread status is kept in the Zephyr
-	  thread stack, the real stack is the native underlying pthread stack.
+	  (In this architecture the Zephyr thread stack is not used as call stack,
+	  the real stack is the native underlying pthread stack.
 	  Therefore the allocated stack can be limited to this size)
 
 config ARCH_POSIX_LIBFUZZER
