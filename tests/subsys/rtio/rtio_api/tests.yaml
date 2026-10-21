@@ -28,8 +28,6 @@ tests:
     extra_configs:
       - CONFIG_USERSPACE=y
       - CONFIG_RTIO_SUBMIT_SEM=n
-    arch_exclude:
-      - posix
     tags:
       - rtio
       - userspace
@@ -40,8 +38,6 @@ tests:
     extra_configs:
       - CONFIG_USERSPACE=y
       - CONFIG_RTIO_SUBMIT_SEM=y
-    arch_exclude:
-      - posix
     tags:
       - rtio
       - userspace
