@@ -107,3 +107,8 @@ Other notable changes
 ..
   Any more descriptive subsystem or driver changes. Do you really want to write
   a paragraph or is it enough to link to the api/driver/Kconfig/board page above?
+
+* The ``native_sim`` and ``native_sim/native/64`` targets support
+  :kconfig:option:`CONFIG_USERSPACE` as an experimental feature, with the memory protection
+  emulated with the host memory protection keys or page permissions (see
+  :ref:`posix_arch_userspace`).

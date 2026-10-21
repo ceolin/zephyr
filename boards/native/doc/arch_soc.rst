@@ -172,9 +172,8 @@ Significant unsupported features
 
 Currently, these are the most significant features which are not supported in this architecture:
 
-* :ref:`User mode/userspace <usermode_api>`: When building for these targets,
-  :kconfig:option:`CONFIG_USERSPACE` will always be disabled,
-  and all calls into the kernel will be done as normal calls.
+* :ref:`User mode/userspace <usermode_api>` is only supported experimentally, on the
+  ``native_sim`` targets, see :ref:`posix_arch_userspace`.
 
 * Stack checks: :kconfig:option:`CONFIG_HW_STACK_PROTECTION`,
   :kconfig:option:`CONFIG_STACK_CANARIES`, and
@@ -401,14 +400,61 @@ using NCT, blocks and unblocks the corresponding pthreads.
 This architecture provides the same interface to the Kernel as other
 architectures and is therefore transparent for the application.
 
-Note that all threads use a normal Linux pthread stack, and do not use
+Note that kernel threads use a normal Linux pthread stack, and do not use
 the Zephyr thread stack allocation for their call stacks or automatic
-variables. The Zephyr stacks (which are allocated in "static memory") are
-only used by the POSIX architecture to keep thread bookkeeping data.
+variables. Only user mode threads run on their Zephyr stack (see
+:ref:`posix_arch_userspace`).
 
 When using this architecture, the code is compiled natively for the host system,
 and typically as a 32-bit binary assuming pointer and integer types are 32-bits
 wide.
+
+.. _posix_arch_userspace:
+
+User mode
+=========
+
+On ``native_sim`` and ``native_sim/native/64``, :kconfig:option:`CONFIG_USERSPACE` is supported,
+as an experimental feature, so user mode threads, system calls and memory domains can be
+developed and tested on the host.
+
+There is no privilege level to switch to in a host process, so the memory protection is
+emulated:
+
+* The RAM of the Zephyr image is gathered in page aligned sections when the executable is linked.
+  While a thread runs in user mode, this RAM is made inaccessible, except for the thread stack
+  buffer and the partitions of its memory domain. Text and read-only data stay accessible.
+* If the host supports memory protection keys, the RAM is tagged with protection keys, and
+  entering or leaving user mode only changes the access rights of the current host thread.
+  Otherwise, the page permissions are changed every time user mode is entered or left, which is
+  much slower. The ``--userspace-no-pkeys`` command line option forces the latter.
+* A system call is a function call which gives the kernel access to the RAM back and runs the
+  system call handler on the privileged stack of the thread, which is placed in the thread stack
+  object.
+* An invalid memory access, or an invalid instruction, done in user mode raises a host signal,
+  which is reported as a fatal error of the thread.
+
+This is meant for development and testing, it is not a security boundary: any code in the
+process can change the memory permissions, and the memory outside of the Zephyr image RAM (the
+host C library state and heap, and the native simulator runner) is not protected. User mode code
+must not call host or runner functions directly.
+
+User mode thread stacks are page aligned and are at least
+:kconfig:option:`CONFIG_ARCH_POSIX_USER_STACK_MIN_SIZE` bytes, and each of them is preceded by
+its privileged stack and a guard page.
+
+As the kernel objects are identified by their address, and the final addresses of the image are
+only known once it is linked with the native simulator runner, a provisional executable
+(``zephyr/zephyr_prebuilt.exe``) is linked to generate the kernel object table, and the build
+checks the final executable has the same layout.
+
+Code instrumentation (:kconfig:option:`CONFIG_COVERAGE`) and the address and memory sanitizers
+are not supported with user mode, nor are several CPUs/images: in those builds,
+:kconfig:option:`CONFIG_USERSPACE` cannot be enabled.
+
+Kernel threads keep running on their host thread stack, so with user mode, the stack information
+of a kernel thread describes a Zephyr stack the thread does not use, and
+:kconfig:option:`CONFIG_ARCH_POSIX_UPDATE_STACK_INFO` is not available.
 
 .. _posix_arch_design_socl:
 

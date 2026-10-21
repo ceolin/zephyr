@@ -93,6 +93,10 @@ For threads running in a non-privileged CPU state (hereafter referred to as
 - We prevent the introduction of new executable code by user mode threads,
   except to the extent to which this is supported by kernel system calls.
 
+The native simulator targets emulate the memory protection hardware for
+development and testing purposes only, and do not provide these guarantees
+(see :ref:`posix_arch_userspace`).
+
 We are specifically not protecting against the following attacks:
 
 - The kernel itself, and any threads that are executing in supervisor mode,
