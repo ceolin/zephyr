@@ -294,6 +294,16 @@ void z_impl_z_log_msg_simple_create_2(const void *source, uint32_t level,
 	z_log_msg_simple_create(source, level, data, ARRAY_SIZE(data));
 }
 
+/* Messages are only buffered in deferred mode. Otherwise they are processed
+ * before z_log_msg_finalize() returns, as done for messages created in kernel
+ * mode, so the caller stack holds them.
+ */
+#define static_create_msg_alloc(desc)                                                              \
+	(IS_ENABLED(CONFIG_LOG_MODE_DEFERRED)                                                      \
+		 ? z_log_msg_alloc(log_msg_get_total_wlen(desc))                                   \
+		 : (struct log_msg *)LOG_MSG_ALIGNED_ALLOCA(log_msg_get_total_wlen(desc) *         \
+							    sizeof(int)))
+
 void z_impl_z_log_msg_static_create(const void *source,
 			      const struct log_msg_desc desc,
 			      uint8_t *package, const void *data)
@@ -335,7 +345,7 @@ void z_impl_z_log_msg_static_create(const void *source,
 		 * when strings are copied into the package.
 		 */
 		out_desc.package_len = len;
-		msg = z_log_msg_alloc(log_msg_get_total_wlen(out_desc));
+		msg = static_create_msg_alloc(out_desc);
 		if (msg) {
 			len = cbprintf_package_copy(package, inlen,
 						    msg->data, out_desc.package_len,
@@ -343,7 +353,7 @@ void z_impl_z_log_msg_static_create(const void *source,
 			__ASSERT_NO_MSG(len >= 0);
 		}
 	} else {
-		msg = z_log_msg_alloc(log_msg_get_total_wlen(out_desc));
+		msg = static_create_msg_alloc(out_desc);
 	}
 
 	z_log_msg_finalize(msg, source, out_desc, data);
