@@ -48,6 +48,19 @@ def output_simple_header(one_sect):
             write_define(out_fp, prefix, 'SZ', size)
 
 
+DATA_REL_SECTIONS = {
+    ".data.rel": ".data",
+    ".data.rel.local": ".data",
+}
+
+
+def round_up(value, align):
+    """Round value up to a multiple of align"""
+    if align <= 1:
+        return value
+    return (value + align - 1) // align * align
+
+
 def generate_linker_headers(obj):
     """Generate linker header files to be included by the linker script"""
 
@@ -79,19 +92,28 @@ def generate_linker_headers(obj):
         if type(one_sect) is not elftools.elf.sections.Section:  # pylint: disable=unidiomatic-typecheck
             continue
 
-        name = one_sect.name
+        # Position independent code puts data with relocations, like the
+        # gperf table on 64-bit hosts, in .data.rel sections, which end up
+        # in the kobject data area as well.
+        name = DATA_REL_SECTIONS.get(one_sect.name, one_sect.name)
         if name in sections:
             # Need section alignment and size
-            sections[name]['align'] = one_sect['sh_addralign']
-            sections[name]['size'] = one_sect['sh_size']
-            sections[name]['exists'] = True
+            sect = sections[name]
+            sect['align'] = max(sect.get('align', 0), one_sect['sh_addralign'])
+            sect['size'] = round_up(sect.get('size', 0), one_sect['sh_addralign'])
+            sect['size'] += one_sect['sh_size']
+            sect['exists'] = True
 
-            if "multiplier" in sections[name]:
-                sections[name]['size'] *= sections[name]['multiplier'] / 100
-                sections[name]['size'] = int(sections[name]['size'])
+    for sect in sections.values():
+        if not sect['exists']:
+            continue
 
-            if "extra_bytes" in sections[name]:
-                sections[name]['size'] += int(sections[name]['extra_bytes'])
+        if "multiplier" in sect:
+            sect['size'] *= sect['multiplier'] / 100
+            sect['size'] = int(sect['size'])
+
+        if "extra_bytes" in sect:
+            sect['size'] += int(sect['extra_bytes'])
 
     for one_sect in sections:
         output_simple_header(sections[one_sect])
