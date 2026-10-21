@@ -1,8 +1,6 @@
 tests:
   kernel.mutex.error:
     filter: CONFIG_ARCH_HAS_USERSPACE
-    arch_exclude:
-      - posix
     tags:
       - kernel
       - userspace

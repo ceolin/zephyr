@@ -4,14 +4,14 @@ common:
     - kernel
     - security
     - userspace
-  arch_exclude:
-    - posix
 tests:
   kernel.memory_protection.userspace:
     filter: CONFIG_ARCH_HAS_USERSPACE
     extra_configs:
       - CONFIG_TEST_HW_STACK_PROTECTION=n
       - CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE=0
+      - platform:native_sim/native:CONFIG_MINIMAL_LIBC=y
+      - platform:native_sim/native/64:CONFIG_MINIMAL_LIBC=y
     platform_exclude:
       - ucans32k1sic
       - mimxrt700_evk/mimxrt798s/cm33_cpu0

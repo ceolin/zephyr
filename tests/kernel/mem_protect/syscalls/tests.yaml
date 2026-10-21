@@ -4,8 +4,6 @@ common:
     # Too few MPU regions for USERSPACE testing
     - numaker_m2l31ki
   filter: CONFIG_ARCH_HAS_USERSPACE
-  arch_exclude:
-    - posix
   tags:
     - kernel
     - security
