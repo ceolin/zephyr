@@ -1490,6 +1490,14 @@ if(CONFIG_SYMTAB)
   set_property(GLOBAL APPEND PROPERTY GENERATED_KERNEL_SOURCE_FILES symtab.c)
 endif()
 
+if(CONFIG_BUILD_OUTPUT_EXE)
+  # Used to link the native simulator executable
+  if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+    set(MAKE "${CMAKE_MAKE_PROGRAM}" CACHE FILEPATH "cmake defined make")
+  endif()
+  find_program(MAKE make REQUIRED)
+endif()
+
 if(CONFIG_USERSPACE)
   set(KOBJECT_HASH_LIST               kobject_hash.gperf)
   set(KOBJECT_HASH_OUTPUT_SRC_PRE     kobject_hash_preprocessed.c)
@@ -1502,16 +1510,71 @@ if(CONFIG_USERSPACE)
   # linking the hash table back into a now even more nearly finished
   # elf file. More information in gen_kobject_list.py --help.
 
-  # Use the script GEN_KOBJ_LIST to scan the kernel binary's
-  # (${ZEPHYR_LINK_STAGE_EXECUTABLE}) DWARF information to produce a table of kernel
-  # objects (KOBJECT_HASH_LIST) which we will then pass to gperf
-  gen_kobject_list_gperf(
-    TARGET kobj_hash_list
-    OUTPUT ${KOBJECT_HASH_LIST}
-    KERNEL_TARGET ${ZEPHYR_LINK_STAGE_EXECUTABLE}
-    INCLUDES ${struct_tags_json}
-    DEPENDS ${struct_tags_json}
-    )
+  if(CONFIG_NATIVE_LIBRARY)
+    # The kernel objects are identified by their address, and the addresses of a
+    # native simulator image are only known once it is linked with the runner.
+    # Link a provisional executable with the prebuilt image, which has the final
+    # layout thanks to the kernel object placeholders, and scan that one.
+    set(KOBJECT_PREBUILT_EXE ${PROJECT_BINARY_DIR}/zephyr_prebuilt.exe)
+
+    # Linker script for the native simulator executable: it gathers the image
+    # RAM, to be protected by the architecture, and keeps the kernel object
+    # sections in place between the provisional and the final executable.
+    set(NATIVE_USERSPACE_LD ${PROJECT_BINARY_DIR}/native_userspace.ld)
+    add_custom_command(
+      OUTPUT ${NATIVE_USERSPACE_LD}
+      COMMAND
+      ${PYTHON_EXECUTABLE}
+      ${ZEPHYR_BASE}/scripts/build/gen_native_userspace_ld.py
+      --elf $<TARGET_FILE:${ZEPHYR_LINK_STAGE_EXECUTABLE}>
+      --output ${NATIVE_USERSPACE_LD}
+      --page-size ${CONFIG_ARCH_POSIX_PAGE_SIZE}
+      DEPENDS
+      ${ZEPHYR_LINK_STAGE_EXECUTABLE}
+      ${ZEPHYR_BASE}/scripts/build/gen_native_userspace_ld.py
+      COMMENT "Generating native simulator user mode linker script"
+      )
+    target_link_options(native_simulator INTERFACE "-T ${NATIVE_USERSPACE_LD}")
+
+    file(GLOB nsi_runner_sources ${NSI_DIR}/common/src/*.c ${NSI_DIR}/native/src/*.c)
+    add_custom_command(
+      OUTPUT ${KOBJECT_PREBUILT_EXE}
+      COMMAND
+      ${MAKE} -f ${NSI_DIR}/Makefile all --warn-undefined-variables
+        -r NSI_CONFIG_FILE=${APPLICATION_BINARY_DIR}/zephyr/NSI/nsi_config
+        NSI_EMBEDDED_CPU_SW=$<TARGET_FILE:${ZEPHYR_LINK_STAGE_EXECUTABLE}>
+        NSI_EXE=${KOBJECT_PREBUILT_EXE}
+      DEPENDS
+      ${ZEPHYR_LINK_STAGE_EXECUTABLE}
+      ${NATIVE_USERSPACE_LD}
+      ${APPLICATION_BINARY_DIR}/zephyr/NSI/nsi_config
+      ${NSI_DIR}/Makefile
+      ${nsi_runner_sources}
+      $<TARGET_PROPERTY:native_simulator,INTERFACE_SOURCES>
+      COMMAND_EXPAND_LISTS
+      COMMENT "Linking provisional native simulator executable"
+      )
+    add_custom_target(kobj_prebuilt_exe DEPENDS ${KOBJECT_PREBUILT_EXE})
+
+    gen_kobject_list(
+      TARGET kobj_hash_list
+      OUTPUTS ${KOBJECT_HASH_LIST}
+      SCRIPT_ARGS --kernel ${KOBJECT_PREBUILT_EXE} --gperf-output ${KOBJECT_HASH_LIST}
+      INCLUDES ${struct_tags_json}
+      DEPENDS ${struct_tags_json} ${KOBJECT_PREBUILT_EXE} kobj_prebuilt_exe
+      )
+  else()
+    # Use the script GEN_KOBJ_LIST to scan the kernel binary's
+    # (${ZEPHYR_LINK_STAGE_EXECUTABLE}) DWARF information to produce a table of kernel
+    # objects (KOBJECT_HASH_LIST) which we will then pass to gperf
+    gen_kobject_list_gperf(
+      TARGET kobj_hash_list
+      OUTPUT ${KOBJECT_HASH_LIST}
+      KERNEL_TARGET ${ZEPHYR_LINK_STAGE_EXECUTABLE}
+      INCLUDES ${struct_tags_json}
+      DEPENDS ${struct_tags_json}
+      )
+  endif()
 
   # Use gperf to generate C code (KOBJECT_HASH_OUTPUT_SRC_PRE) which implements a
   # perfect hashtable based on KOBJECT_HASH_LIST
@@ -1585,6 +1648,8 @@ if(CONFIG_USERSPACE)
             $<TARGET_PROPERTY:bintools,elfconvert_flag_section_rename>.sdata=.kobject_data.sdata
             $<TARGET_PROPERTY:bintools,elfconvert_flag_section_rename>.text=.kobject_data.text
             $<TARGET_PROPERTY:bintools,elfconvert_flag_section_rename>.rodata=.kobject_data.rodata
+            # Native: keep the table own objects out of the final executable scan
+            $<$<BOOL:${CONFIG_NATIVE_LIBRARY}>:$<TARGET_PROPERTY:bintools,elfconvert_flag_strip_debug>>
             $<TARGET_PROPERTY:bintools,elfconvert_flag_infile>$<TARGET_OBJECTS:kobj_hash_output_lib>
             $<TARGET_PROPERTY:bintools,elfconvert_flag_outfile>${KOBJECT_HASH_OUTPUT_OBJ_RENAMED}
             $<TARGET_PROPERTY:bintools,elfconvert_flag_final>
@@ -1703,6 +1768,8 @@ else()
     LIBRARIES_POST_SCRIPT ""
     DEPENDENCIES          ${CODE_RELOCATION_DEP}
   )
+  target_link_libraries_ifdef(CONFIG_NATIVE_LIBRARY ${ZEPHYR_FINAL_EXECUTABLE}
+                              $<TARGET_PROPERTY:linker,partial_linking>)
   target_link_libraries_ifdef(CONFIG_LLEXT_EXPORT_BUILTINS_BY_SLID ${ZEPHYR_FINAL_EXECUTABLE}
                             $<TARGET_PROPERTY:linker,no_check_sections>)
   set_property(TARGET   ${ZEPHYR_FINAL_EXECUTABLE} PROPERTY LINK_DEPENDS ${PROJECT_BINARY_DIR}/linker.cmd)
@@ -2101,10 +2168,17 @@ if(CONFIG_BUILD_OUTPUT_COMPRESS_DEBUG_SECTIONS)
 endif()
 
 if(CONFIG_BUILD_OUTPUT_EXE)
-  if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-    set(MAKE "${CMAKE_MAKE_PROGRAM}" CACHE FILEPATH "cmake defined make")
+  if(CONFIG_USERSPACE)
+    # Check the kernel object table generated from the provisional executable
+    # matches the final executable
+    set(native_kobject_check
+      COMMAND ${GEN_KOBJECT_LIST_INTERPRETER} ${GEN_KOBJECT_LIST}
+        --kernel ${KERNEL_EXE_NAME}
+        --gperf-output ${KOBJECT_HASH_LIST}.check
+        --include-subsystem-list ${struct_tags_json}
+      COMMAND ${CMAKE_COMMAND} -E compare_files ${KOBJECT_HASH_LIST} ${KOBJECT_HASH_LIST}.check
+    )
   endif()
-  find_program(MAKE make REQUIRED)
   add_custom_target(native_runner_executable
     ALL
     COMMENT "Building native simulator runner, and linking final executable"
@@ -2112,6 +2186,7 @@ if(CONFIG_BUILD_OUTPUT_EXE)
     ${MAKE} -f ${ZEPHYR_BASE}/scripts/native_simulator/Makefile all --warn-undefined-variables
       -r NSI_CONFIG_FILE=${APPLICATION_BINARY_DIR}/zephyr/NSI/nsi_config
     # nsi_config is created by the board cmake file
+    ${native_kobject_check}
     DEPENDS ${logical_target_for_zephyr_elf}
     BYPRODUCTS ${KERNEL_EXE_NAME}
   )
