@@ -60,8 +60,12 @@ int arch_swap(unsigned int key)
 	 * to run later, and signal to whomever is allowed to run to
 	 * continue.
 	 */
+#ifdef CONFIG_USERSPACE
+	posix_userspace_swap(this_thread_ptr, ready_thread_ptr->thread_idx);
+#else
 	posix_swap(ready_thread_ptr->thread_idx,
 		this_thread_ptr->thread_idx);
+#endif
 
 	/* When we continue, _kernel->current points back to this thread */
 

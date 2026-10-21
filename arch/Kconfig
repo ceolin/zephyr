@@ -439,6 +439,7 @@ config NOINIT_SNIPPET_FIRST
 
 config PRIVILEGED_STACK_SIZE
 	int "Size of privileged stack"
+	default 32768 if ARCH_POSIX
 	default 2048 if EMUL
 	default 1024
 	depends on USERSPACE

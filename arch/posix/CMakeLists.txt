@@ -59,6 +59,11 @@ else()
   set(NATIVE_TARGET_ARCH ${TARGET_HOST} CACHE STRING "Target architecture for native simulator based targets")
 endif()
 
+# clang only supports -mno-global-merge, added for CONFIG_USERSPACE, on arm and aarch64
+if(NOT TARGET_HOST MATCHES "^(arm|aarch64)")
+  set_compiler_property(PROPERTY no_global_merge "")
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/${TARGET_HOST}.cmake)
   # Set necessary compiler & linker options for this specific host architecture
   include(${TARGET_HOST}.cmake)
@@ -177,3 +182,7 @@ endif()
 
 include(natsim_optional.cmake)
 add_subdirectory(core)
+
+zephyr_syscall_header_ifdef(CONFIG_USERSPACE
+  ${ZEPHYR_BASE}/include/zephyr/arch/posix/posix_arch_error.h
+)

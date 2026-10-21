@@ -37,6 +37,12 @@ arch_thread_return_value_set(struct k_thread *thread, unsigned int value)
 
 static inline bool arch_is_in_isr(void)
 {
+#ifdef CONFIG_USERSPACE
+	/* User threads cannot read _kernel, and are never in an ISR */
+	if (arch_is_user_context()) {
+		return false;
+	}
+#endif
 	return _kernel.cpus[0].nested != 0U;
 }
 

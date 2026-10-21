@@ -16,9 +16,48 @@ config ARCH_POSIX_PAGE_SIZE
 	  Page size of the host, in bytes. This is the granularity of the
 	  memory protection used for user mode. It is checked at runtime.
 
+config ARCH_POSIX_USERSPACE
+	def_bool y
+	depends on NATIVE_LIBRARY && BUILD_OUTPUT_EXE
+	depends on NATIVE_SIMULATOR_NUMBER_MCUS = 1 && NATIVE_SIMULATOR_EXTRA_IMAGE_PATHS = ""
+	depends on !ASAN && !MSAN && !COVERAGE && !ARCH_POSIX_LIBFUZZER
+	select EXPERIMENTAL if USERSPACE
+	select ARCH_HAS_USERSPACE
+	select ARCH_HAS_SW_MEM_PROTECTION
+	select ARCH_HAS_THREAD_PRIV_STACK_SPACE_GET
+	select ARCH_MEM_DOMAIN_SUPPORTS_ISOLATED_STACKS
+	help
+	  The build supports user mode threads (CONFIG_USERSPACE) on this
+	  architecture. User mode support is experimental.
+
+	  The memory protection is emulated on the host: while a user thread
+	  runs, the RAM of the Zephyr image is made inaccessible, except for
+	  the thread stack and the partitions of its memory domain, with the
+	  memory protection keys of the host if it supports them, or with the
+	  page permissions otherwise. System calls switch to a privileged stack
+	  and restore access, and invalid accesses done in user mode are
+	  reported as fatal errors of the faulting thread.
+
+	  This is meant for developing and testing user mode code. It is not a
+	  security boundary: any code in the process can change the memory
+	  permissions, and memory outside of the Zephyr image RAM (like the
+	  host C library state or the host heap) is not protected.
+
+config ARCH_POSIX_USER_STACK_MIN_SIZE
+	int "Minimum size of user mode thread stacks"
+	default 8192
+	depends on USERSPACE
+	help
+	  User mode threads run on their Zephyr thread stack, unlike kernel
+	  threads which use the host pthread stack. Code built for the host
+	  needs more stack than typical embedded targets, so user mode capable
+	  stacks are enlarged to at least this size (in bytes, rounded up to
+	  the page size).
+
 config ARCH_POSIX_UPDATE_STACK_INFO
 	bool "Update thread stack info with real pthread stack bounds"
 	depends on THREAD_STACK_INFO
+	depends on !USERSPACE
 	help
 	  When enabled, the POSIX architecture will update each thread's
 	  stack_info to reflect the actual pthread stack instead of the

@@ -22,9 +22,15 @@
 
 #ifndef _ASMLANGUAGE
 #include <zephyr/types.h>
+#include <zephyr/toolchain.h>
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+
+#if defined(CONFIG_USERSPACE)
+/* Size of the opaque host state kept in each thread object */
+#define POSIX_ARCH_HOST_STATE_SIZE 256
 #endif
 
 struct _callee_saved {
@@ -60,6 +66,20 @@ struct _thread_arch {
 #if defined(CONFIG_ARCH_HAS_THREAD_ABORT)
 	/* The kernel may indicate that a thread has been aborted several times */
 	int aborted;
+#endif
+
+#if defined(CONFIG_USERSPACE)
+	/* Privileged stack, used for system calls once in user mode */
+	uintptr_t priv_stack_start;
+	size_t priv_stack_size;
+
+	/* POSIX_THREAD_* flags */
+	uint32_t flags;
+
+	/* Host side state used to enter and leave user mode, only
+	 * interpreted by the host side of the architecture.
+	 */
+	uint8_t host_state[POSIX_ARCH_HOST_STATE_SIZE] __aligned(16);
 #endif
 };
 

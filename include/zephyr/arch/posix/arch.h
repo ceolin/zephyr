@@ -25,6 +25,8 @@
 #include <zephyr/arch/exception.h>
 #include <zephyr/arch/posix/asm_inline.h>
 #include <zephyr/arch/posix/thread.h>
+#include <zephyr/arch/posix/thread_stack.h>
+#include <zephyr/arch/posix/posix_arch_error.h>
 #include <board_irq.h> /* Each board must define this */
 #include <zephyr/sw_isr_table.h>
 #include <zephyr/arch/posix/posix_soc_if.h>
@@ -38,6 +40,37 @@ extern "C" {
 #else
 #define ARCH_STACK_PTR_ALIGN 4
 #endif
+
+#ifdef CONFIG_USERSPACE
+/* Memory partition attributes. Only the user mode permissions are enforced,
+ * kernel mode code can access the whole Zephyr image RAM.
+ */
+#define Z_POSIX_MEM_U_R BIT(0)
+#define Z_POSIX_MEM_U_W BIT(1)
+#define Z_POSIX_MEM_U_X BIT(2)
+#define Z_POSIX_MEM_P_W BIT(3)
+
+typedef struct {
+	uint8_t attrs;
+} k_mem_partition_attr_t;
+
+#define K_MEM_PARTITION_P_RW_U_RW                                                                  \
+	((k_mem_partition_attr_t){Z_POSIX_MEM_P_W | Z_POSIX_MEM_U_R | Z_POSIX_MEM_U_W})
+#define K_MEM_PARTITION_P_RW_U_RO ((k_mem_partition_attr_t){Z_POSIX_MEM_P_W | Z_POSIX_MEM_U_R})
+#define K_MEM_PARTITION_P_RW_U_NA ((k_mem_partition_attr_t){Z_POSIX_MEM_P_W})
+#define K_MEM_PARTITION_P_RO_U_RO ((k_mem_partition_attr_t){Z_POSIX_MEM_U_R})
+#define K_MEM_PARTITION_P_RO_U_NA ((k_mem_partition_attr_t){0})
+#define K_MEM_PARTITION_P_NA_U_NA ((k_mem_partition_attr_t){0})
+#define K_MEM_PARTITION_P_RX_U_RX ((k_mem_partition_attr_t){Z_POSIX_MEM_U_R | Z_POSIX_MEM_U_X})
+#define K_MEM_PARTITION_P_RWX_U_RWX                                                                \
+	((k_mem_partition_attr_t){Z_POSIX_MEM_P_W | Z_POSIX_MEM_U_R | Z_POSIX_MEM_U_W |            \
+				  Z_POSIX_MEM_U_X})
+#define K_MEM_PARTITION_P_RWX_U_RX                                                                 \
+	((k_mem_partition_attr_t){Z_POSIX_MEM_P_W | Z_POSIX_MEM_U_R | Z_POSIX_MEM_U_X})
+
+#define K_MEM_PARTITION_IS_WRITABLE(attr)   (((attr).attrs & Z_POSIX_MEM_U_W) != 0U)
+#define K_MEM_PARTITION_IS_EXECUTABLE(attr) (((attr).attrs & Z_POSIX_MEM_U_X) != 0U)
+#endif /* CONFIG_USERSPACE */
 
 extern uint32_t sys_clock_cycle_get_32(void);
 

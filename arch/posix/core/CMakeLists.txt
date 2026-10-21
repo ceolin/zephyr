@@ -16,3 +16,8 @@ endif()
 zephyr_library_sources(
   posix_core_nsi.c
 )
+
+if(CONFIG_USERSPACE)
+  zephyr_library_sources(userspace.c)
+  target_sources(native_simulator INTERFACE userspace_bottom.c)
+endif()

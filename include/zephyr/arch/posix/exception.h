@@ -16,7 +16,18 @@ extern "C" {
 #endif
 
 struct arch_esf {
+#if defined(CONFIG_USERSPACE)
+	/* Faulting address, 0 if the error was not a host memory fault */
+	uintptr_t fault_addr;
+	/* Program counter and stack pointer where the error happened */
+	uintptr_t pc;
+	uintptr_t sp;
+	/* Host signal and signal code for host memory faults, 0 otherwise */
+	int host_sig;
+	int host_code;
+#else
 	uint32_t dummy; /*maybe we will want to add something someday*/
+#endif
 };
 
 #ifdef __cplusplus

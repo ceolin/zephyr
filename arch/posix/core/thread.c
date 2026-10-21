@@ -14,6 +14,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <zephyr/toolchain.h>
 #include <zephyr/kernel_structs.h>
 #include <ksched.h>
@@ -45,6 +46,12 @@ void arch_new_thread(struct k_thread *thread, k_thread_stack_t *stack,
 	thread_status->arg3 = p3;
 #if defined(CONFIG_ARCH_HAS_THREAD_ABORT)
 	thread_status->aborted = 0;
+#endif
+#if defined(CONFIG_USERSPACE)
+	thread_status->priv_stack_start = 0;
+	thread_status->priv_stack_size = 0;
+	thread_status->flags = 0;
+	(void)memset(thread_status->host_state, 0, sizeof(thread_status->host_state));
 #endif
 
 	thread->callee_saved.thread_status = thread_status;
@@ -118,6 +125,13 @@ void posix_arch_thread_entry(void *pa_thread_status)
 {
 	posix_thread_status_t *ptr = pa_thread_status;
 	posix_irq_full_unlock();
+#ifdef CONFIG_USERSPACE
+	struct k_thread *thread = CONTAINER_OF(ptr, struct k_thread, arch);
+
+	if ((thread->base.user_options & K_USER) != 0U) {
+		k_thread_user_mode_enter(ptr->entry_point, ptr->arg1, ptr->arg2, ptr->arg3);
+	}
+#endif
 	z_thread_entry(ptr->entry_point, ptr->arg1, ptr->arg2, ptr->arg3);
 }
 
@@ -182,6 +196,10 @@ void z_impl_k_thread_abort(k_tid_t thread)
 	 */
 	thread->stack_info.start = tstatus->zephyr_stack_start;
 	thread->stack_info.size = tstatus->zephyr_stack_size;
+#endif
+
+#ifdef CONFIG_USERSPACE
+	posix_userspace_thread_abort(thread);
 #endif
 
 	z_thread_abort(thread);

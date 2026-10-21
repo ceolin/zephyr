@@ -23,6 +23,8 @@
 #include <zephyr/arch/riscv/syscall.h>
 #elif defined(CONFIG_XTENSA)
 #include <zephyr/arch/xtensa/syscall.h>
+#elif defined(CONFIG_ARCH_POSIX)
+#include <zephyr/arch/posix/syscall.h>
 #elif defined(CONFIG_USERSPACE)
 #error "The selected architecture is missing from this dispatch header"
 #endif

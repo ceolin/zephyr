@@ -16,6 +16,13 @@ extern "C" {
 /* The per thread status of this architecture is kept in the thread object */
 typedef struct _thread_arch posix_thread_status_t;
 
+#ifdef CONFIG_USERSPACE
+/* posix_thread_status_t flags */
+#define POSIX_THREAD_ENTERED_USER BIT(0) /* The thread has dropped to user mode */
+
+void posix_userspace_swap(posix_thread_status_t *this_thread, int next_thread_idx);
+void posix_userspace_thread_abort(struct k_thread *thread);
+#endif
 
 void posix_irq_check_idle_exit(void);
 void posix_arch_init(void);
