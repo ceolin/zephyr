@@ -262,12 +262,16 @@ def wrapper_defs(func_name, func_type, args, fn, userspace_only):
         if argtype != "va_list":
             wrap += f" = {{ .val = {argname} }};\n"
         else:
-            # va_list objects are ... peculiar.
+            # va_list objects are ... peculiar. They can be larger than a
+            # register (an array of structures on x86_64 and arm64), so a
+            # pointer to a copy is passed.
             wrap += ";\n" + "\t\t" + f"va_copy(parm{argnum}.val, {argname});\n"
             valist_args.append(f"parm{argnum}.val")
         if split:
             mrsh_args.append(f"parm{argnum}.split.lo")
             mrsh_args.append(f"parm{argnum}.split.hi")
+        elif argtype == "va_list":
+            mrsh_args.append(f"(uintptr_t)&parm{argnum}.val")
         else:
             mrsh_args.append(f"parm{argnum}.x")
 
@@ -389,8 +393,15 @@ def marshall_defs(func_name, func_type, args):
         )
 
     argnum = 0
+    out_args = []
     for i, (argtype, split) in enumerate(vrfy_parms):
-        decl = union_decl(argtype, split)
+        if argtype == "va_list":
+            # The caller passes a pointer to its copy of the va_list
+            decl = union_decl("va_list *", split)
+            out_args.append(f"*parm{i}.val")
+        else:
+            decl = union_decl(argtype, split)
+            out_args.append(f"parm{i}.val")
         mrsh += f"\t{decl} parm{i};\n"
         rval = mrsh_rval(argnum, nmrsh)
         if split:
@@ -400,10 +411,12 @@ def marshall_defs(func_name, func_type, args):
             mrsh += "\t" + f"parm{i}.split.hi = {rval};\n"
         else:
             mrsh += "\t" + f"parm{i}.x = {rval};\n"
+        if argtype == "va_list":
+            mrsh += "\t" + f"K_OOPS(K_SYSCALL_MEMORY_READ(parm{i}.val, sizeof(va_list)));\n"
         argnum += 1
 
     # Finally, invoke the verify function
-    out_args = ", ".join([f"parm{i}.val" for i in range(len(args))])
+    out_args = ", ".join(out_args)
     vrfy_call = f"z_vrfy_{func_name}({out_args})"
 
     if func_type == "void":
