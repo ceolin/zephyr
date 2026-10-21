@@ -9,12 +9,17 @@
 
 #define TIMEOUT_MS 500
 
-#define POOL_SIZE 28672
-
 #ifdef CONFIG_USERSPACE
 #define STACK_OBJ_SIZE K_THREAD_STACK_LEN(CONFIG_DYNAMIC_THREAD_STACK_SIZE)
 #else
 #define STACK_OBJ_SIZE K_KERNEL_STACK_LEN(CONFIG_DYNAMIC_THREAD_STACK_SIZE)
+#endif
+
+#if defined(CONFIG_ARCH_POSIX) && defined(CONFIG_USERSPACE)
+/* POSIX user stack objects also hold a guard page and the privileged stack */
+#define POOL_SIZE (4 * STACK_OBJ_SIZE)
+#else
+#define POOL_SIZE 28672
 #endif
 
 #define MAX_HEAP_STACKS (POOL_SIZE / STACK_OBJ_SIZE)
