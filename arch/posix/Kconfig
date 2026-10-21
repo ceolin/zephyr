@@ -9,6 +9,13 @@ menu "Native (POSIX) Architecture Options"
 config ARCH
 	default "posix"
 
+config ARCH_POSIX_PAGE_SIZE
+	int
+	default 4096
+	help
+	  Page size of the host, in bytes. This is the granularity of the
+	  memory protection used for user mode. It is checked at runtime.
+
 config ARCH_POSIX_UPDATE_STACK_INFO
 	bool "Update thread stack info with real pthread stack bounds"
 	depends on THREAD_STACK_INFO
