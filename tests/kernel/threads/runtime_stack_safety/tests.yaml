@@ -10,6 +10,9 @@ tests:
       - posix
   kernel.threads.runtime_stack_safety.userspace:
     filter: CONFIG_ARCH_HAS_USERSPACE
+    # See kernel.threads.runtime_stack_safety
+    arch_exclude:
+      - posix
     tags:
       - userspace
     extra_configs:

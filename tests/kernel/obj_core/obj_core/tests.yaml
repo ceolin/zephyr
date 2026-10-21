@@ -12,6 +12,11 @@ tests:
       - qemu_x86
     platform_exclude:
       - qemu_x86_tiny
+    # With user mode, the stack info of POSIX kernel threads describes their
+    # unused Zephyr stack, not the host pthread stack they run on, so objects
+    # on their stack are not recognized as such
+    arch_exclude:
+      - posix
     extra_configs:
       - CONFIG_USERSPACE=y
       - CONFIG_DYNAMIC_OBJECTS=y
