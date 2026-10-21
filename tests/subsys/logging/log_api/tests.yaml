@@ -63,6 +63,8 @@ tests:
     extra_configs:
       - CONFIG_LOG_MODE_DEFERRED=y
       - CONFIG_LOG_OVERRIDE_LEVEL=4
+      # User mode adds kernel debug messages the mock backend does not expect
+      - CONFIG_TEST_USERSPACE=n
 
   logging.immediate.api:
     extra_configs:
@@ -129,6 +131,8 @@ tests:
       - CONFIG_LOG_FRONTEND=y
       - CONFIG_LOG_MODE_IMMEDIATE=y
       - CONFIG_LOG_OVERRIDE_LEVEL=4
+      # User mode adds kernel debug messages the mock backend does not expect
+      - CONFIG_TEST_USERSPACE=n
 
   logging.deferred.api.override_level_rt_filtering:
     # Testing on selected platforms as it enables all logs in the application
@@ -141,6 +145,8 @@ tests:
       - CONFIG_LOG_MODE_DEFERRED=y
       - CONFIG_LOG_RUNTIME_FILTERING=y
       - CONFIG_LOG_OVERRIDE_LEVEL=4
+      # User mode adds kernel debug messages the mock backend does not expect
+      - CONFIG_TEST_USERSPACE=n
 
   logging.frontend.only:
     extra_configs:
@@ -347,6 +353,8 @@ tests:
     extra_configs:
       - CONFIG_LOG_MODE_DEFERRED=y
       - CONFIG_LOG_OVERRIDE_LEVEL=4
+      # User mode adds kernel debug messages the mock backend does not expect
+      - CONFIG_TEST_USERSPACE=n
       - CONFIG_LOG_USE_TAGGED_ARGUMENTS=y
 
   logging.deferred.api.override_level_rt_filtering.tagged_args:
@@ -361,6 +369,8 @@ tests:
       - CONFIG_LOG_MODE_DEFERRED=y
       - CONFIG_LOG_RUNTIME_FILTERING=y
       - CONFIG_LOG_OVERRIDE_LEVEL=4
+      # User mode adds kernel debug messages the mock backend does not expect
+      - CONFIG_TEST_USERSPACE=n
       - CONFIG_LOG_USE_TAGGED_ARGUMENTS=y
 
   logging.immediate.api.tagged_args:
