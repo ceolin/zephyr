@@ -247,6 +247,9 @@ ZTEST_USER(userspace, test_userspace_write_control)
 	set_fault(K_ERR_CPU_EXCEPTION);
 
 	__asm__ volatile("rsr.ps %0" : "=r" (ps));
+#elif defined(CONFIG_ARCH_POSIX)
+	/* There is no privileged register in this architecture */
+	ztest_test_skip();
 #else
 #error "Not implemented for this architecture"
 	zassert_unreachable("Write to control register did not fault");
@@ -362,6 +365,12 @@ ZTEST_USER(userspace, test_userspace_disable_mmu_mpu)
 	}
 #endif
 
+#elif defined(CONFIG_ARCH_POSIX)
+	/* The memory protection is emulated with the host page permissions,
+	 * which any code in the process can change: this is not a security
+	 * boundary.
+	 */
+	ztest_test_skip();
 #else
 #error "Not implemented for this architecture"
 #endif
@@ -585,8 +594,8 @@ ZTEST_USER(userspace, test_userspace_read_priv_stack)
 
 	s[0] = 0;
 	priv_stack_ptr = (char *)&s[0] - size;
-#elif defined(CONFIG_ARM) || defined(CONFIG_X86) || defined(CONFIG_RISCV) || \
-	defined(CONFIG_ARM64) || defined(CONFIG_XTENSA)
+#elif defined(CONFIG_ARM) || defined(CONFIG_X86) || defined(CONFIG_RISCV) ||                       \
+	defined(CONFIG_ARM64) || defined(CONFIG_XTENSA) || defined(CONFIG_ARCH_POSIX)
 	/* priv_stack_ptr set by test_main() */
 #else
 #error "Not implemented for this architecture"
@@ -625,8 +634,8 @@ ZTEST_USER(userspace, test_userspace_write_priv_stack)
 
 	s[0] = 0;
 	priv_stack_ptr = (char *)&s[0] - size;
-#elif defined(CONFIG_ARM) || defined(CONFIG_X86) || defined(CONFIG_RISCV) || \
-	defined(CONFIG_ARM64) || defined(CONFIG_XTENSA)
+#elif defined(CONFIG_ARM) || defined(CONFIG_X86) || defined(CONFIG_RISCV) ||                       \
+	defined(CONFIG_ARM64) || defined(CONFIG_XTENSA) || defined(CONFIG_ARCH_POSIX)
 	/* priv_stack_ptr set by test_main() */
 #else
 #error "Not implemented for this architecture"
@@ -1747,6 +1756,12 @@ void *userspace_setup(void)
 #elif defined(CONFIG_XTENSA)
 	struct xtensa_thread_stack_header *hdr;
 	void *vhdr = ((struct xtensa_thread_stack_header *)ztest_thread_stack);
+
+	hdr = vhdr;
+	priv_stack_ptr = (((char *)&hdr->privilege_stack) + (sizeof(hdr->privilege_stack) - 1));
+#elif defined(CONFIG_ARCH_POSIX)
+	struct z_posix_thread_stack_header *hdr;
+	void *vhdr = ((struct z_posix_thread_stack_header *)ztest_thread_stack);
 
 	hdr = vhdr;
 	priv_stack_ptr = (((char *)&hdr->privilege_stack) + (sizeof(hdr->privilege_stack) - 1));

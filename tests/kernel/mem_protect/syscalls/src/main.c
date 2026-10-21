@@ -560,6 +560,11 @@ void syscall_switch_stress(void *arg1, void *arg2, void *arg3)
 			count = 0;
 		}
 
+		if (IS_ENABLED(CONFIG_ARCH_POSIX)) {
+			/* Time only passes when the CPU is idle or busy waiting */
+			k_busy_wait(100);
+		}
+
 		YIELD_USER;
 	}
 }
