@@ -54,7 +54,8 @@ config ARCH_MEM_DOMAIN_SYNCHRONOUS_API
 config MEM_DOMAIN_ISOLATED_STACKS
 	bool
 	default y
-	depends on (MMU || MPU) && ARCH_MEM_DOMAIN_SUPPORTS_ISOLATED_STACKS
+	depends on (MMU || MPU || ARCH_HAS_SW_MEM_PROTECTION) && \
+		ARCH_MEM_DOMAIN_SUPPORTS_ISOLATED_STACKS
 	help
 	  If enabled, thread stacks within the same memory domains are
 	  isolated which means threads within the same memory domains

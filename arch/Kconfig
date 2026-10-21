@@ -889,6 +889,14 @@ config ARCH_HAS_STACK_PROTECTION
 config ARCH_HAS_USERSPACE
 	bool
 
+config ARCH_HAS_SW_MEM_PROTECTION
+	bool
+	help
+	  This hidden option is selected by architectures which emulate the
+	  memory protection hardware in software (for example the POSIX
+	  architecture, with the host memory protection). It allows the user
+	  mode related options which otherwise require an MMU or MPU.
+
 config ARCH_HAS_EXECUTABLE_PAGE_BIT
 	bool
 
@@ -1265,7 +1273,7 @@ endif # MPU
 
 config SRAM_REGION_PERMISSIONS
 	bool "Assign appropriate permissions to kernel areas in SRAM"
-	depends on MMU || MPU
+	depends on MMU || MPU || ARCH_HAS_SW_MEM_PROTECTION
 	default y
 	help
 	  This option indicates that memory protection hardware

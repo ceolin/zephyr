@@ -51,10 +51,10 @@ void __stdout_hook_install(int (*hook)(int c));
 
 /* When using the common malloc implementation with CONFIG_USERSPACE, the
  * heap will be in a separate partition when there's an MPU or MMU
- * available.
+ * available, or when the architecture emulates one.
  */
-#if CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE != 0 && \
-(defined(CONFIG_MPU) || defined(CONFIG_MMU))
+#if CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE != 0 &&                                                   \
+	(defined(CONFIG_MPU) || defined(CONFIG_MMU) || defined(CONFIG_ARCH_HAS_SW_MEM_PROTECTION))
 #define Z_MALLOC_PARTITION_EXISTS 1
 #endif
 
