@@ -1,6 +1,8 @@
 tests:
   kernel.memory_protection.protection:
     filter: CONFIG_SRAM_REGION_PERMISSIONS
+    # Kernel mode host faults are not turned into Zephyr fatal errors on POSIX
+    arch_exclude: posix
     tags:
       - kernel
       - security
